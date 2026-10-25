@@ -13,15 +13,15 @@ from gi.repository import Gdk, Gio, GLib, Gtk  # noqa: E402
 from . import i18n, library, settings, theme
 from .i18n import _, ngettext  # noqa: F401
 
-APP_ID = "dev.grekto.Fotos"
+APP_ID = "dev.grekto.Photos"
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 
 
-class FotosApp(Gtk.Application):
+class PhotosApp(Gtk.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID,
                          flags=Gio.ApplicationFlags.HANDLES_OPEN | Gio.ApplicationFlags.HANDLES_COMMAND_LINE)
-        GLib.set_prgname("fotos")
+        GLib.set_prgname("photos")
         GLib.set_application_name(_("Photos"))
         self.gallery = None
         self.viewers = []
@@ -34,7 +34,7 @@ class FotosApp(Gtk.Application):
     # ── lifecycle ──
     def do_startup(self):
         Gtk.Application.do_startup(self)
-        icon = os.path.join(DATA_DIR, "fotos.svg")
+        icon = os.path.join(DATA_DIR, "photos.svg")
         if os.path.exists(icon):
             try:
                 Gtk.Window.set_default_icon_from_file(icon)
@@ -167,5 +167,5 @@ class FotosApp(Gtk.Application):
 
 
 def main(argv=None):
-    app = FotosApp()
+    app = PhotosApp()
     return app.run(argv if argv is not None else sys.argv)

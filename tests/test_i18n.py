@@ -6,6 +6,7 @@ import glob
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -13,7 +14,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 os.environ["XDG_CONFIG_HOME"] = tempfile.mkdtemp()
 
-from fotos import i18n, settings  # noqa: E402
+from photos import i18n, settings  # noqa: E402
 
 LANGS = [c for c in i18n.codes() if c != "en"]
 PH = re.compile(r"%[sd%]|%\.\d[fd]")
@@ -22,7 +23,7 @@ PH = re.compile(r"%[sd%]|%\.\d[fd]")
 def collect_msgids():
     """All literal arguments of _(), N_() and ngettext() across the package: {msgid: plural_or_None}."""
     out = {}
-    for f in glob.glob(os.path.join(ROOT, "fotos", "*.py")):
+    for f in glob.glob(os.path.join(ROOT, "photos", "*.py")):
         if f.endswith("i18n.py"):
             continue
         for n in ast.walk(ast.parse(open(f, encoding="utf-8").read())):
@@ -105,15 +106,45 @@ def test_lookup_plurals_dates_and_rtl():
 def test_language_persists():
     cfg = os.environ["XDG_CONFIG_HOME"]
     settings.set("language", "fr")
-    data = json.load(open(os.path.join(cfg, "fotos", "settings.json")))
+    data = json.load(open(os.path.join(cfg, "photos", "settings.json")))
     assert data["language"] == "fr"
     # a fresh interpreter reads it back
     import subprocess
-    code = ("import sys; sys.path.insert(0, %r); from fotos import i18n; print(i18n.init(), i18n._('Gallery'))" % ROOT)
+    code = ("import sys; sys.path.insert(0, %r); from photos import i18n; print(i18n.init(), i18n._('Gallery'))" % ROOT)
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True,
                          env=dict(os.environ, XDG_CONFIG_HOME=cfg)).stdout.strip()
     assert out == "fr Galerie", out
     settings.set("language", "en")
+
+
+def test_license_text_is_consistent_in_every_language():
+    for code in LANGS:
+        cat = json.load(open(os.path.join(ROOT, "photos", "locales", code + ".json"), encoding="utf-8"))
+        for k, v in cat.items():
+            if "License" in k or "Licen" in str(v):
+                assert "GPL" not in str(v), (code, v)
+        about = [v for k, v in cat.items() if k.startswith("Independent recreation")]
+        assert about and all("Apache" in a for a in about), code
+
+
+def test_app_title_follows_language():
+    expected = {"en": "Photos", "pt_BR": "Fotos", "es": "Fotos", "fr": "Photos", "zh_CN": "照片", "hi": "फ़ोटो", "ar": "الصور"}
+    for code, title in expected.items():
+        i18n.set_language(code)
+        assert i18n._("Photos") == title, (code, i18n._("Photos"))
+    i18n.set_language("en")
+
+
+def test_legacy_fotos_dirs_are_migrated():
+    base = tempfile.mkdtemp()
+    os.makedirs(os.path.join(base, "cfg", "fotos"))
+    open(os.path.join(base, "cfg", "fotos", "settings.json"), "w").write('{"language": "fr"}')
+    code = ("import sys; sys.path.insert(0, %r); from photos import settings; print(settings.PATH)" % ROOT)
+    env = dict(os.environ, XDG_CONFIG_HOME=os.path.join(base, "cfg"), XDG_CACHE_HOME=os.path.join(base, "cache"))
+    out = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True).stdout.strip()
+    assert out.endswith("cfg/photos/settings.json"), out
+    assert json.load(open(out))["language"] == "fr"
+    assert not os.path.exists(os.path.join(base, "cfg", "fotos"))
 
 
 if __name__ == "__main__":

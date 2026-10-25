@@ -16,7 +16,7 @@ class SettingsPage(Gtk.Box):
     def __init__(self, win):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
         self.win = win
-        self.get_style_context().add_class("fotos-root")
+        self.get_style_context().add_class("photos-root")
         top = Gtk.Box(spacing=12)
         top.set_margin_start(8)
         top.set_margin_top(4)
@@ -79,7 +79,7 @@ class SettingsPage(Gtk.Box):
         col.pack_start(ui.label(_("About"), ["settings-head"]), False, False, 0)
         card = self._card()
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
-        box.pack_start(ui.label(_("Fotos for Linux  ·  version %s") % VERSION), False, False, 0)
+        box.pack_start(ui.label(_("Photos for Linux  ·  version %s") % VERSION), False, False, 0)
         box.pack_start(ui.label(_("Independent recreation inspired by the Windows 11 Photos app. Contains no Microsoft code or assets. License: Apache 2.0."), ["settings-sub"], wrap=True), False, False, 0)
         card.pack_start(box, True, True, 0)
         col.pack_start(card, False, False, 0)

@@ -1,6 +1,6 @@
 name: Release
 
-# Pushing a tag like v0.1.0 tests the project, builds fotos_<version>_all.deb and publishes it as a GitHub Release.
+# Pushing a tag like v1.0.1 tests the project, builds photos_<version>_all.deb and publishes it as a GitHub Release.
 # "Run workflow" (manual) only builds the package and keeps it as a build artifact.
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
       - name: Check that the tag matches the version in the code
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          code_version="$(python3 -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("fotos/__init__.py").read()).group(1))')"
+          code_version="$(python3 -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("photos/__init__.py").read()).group(1))')"
           tag_version="${GITHUB_REF_NAME#v}"
           echo "tag=$tag_version code=$code_version"
           test "$tag_version" = "$code_version"
@@ -37,29 +37,29 @@ jobs:
           xvfb-run -a python3 tests/test_i18n.py
 
       - name: Validate the desktop entry
-        run: desktop-file-validate data/dev.grekto.Fotos.desktop
+        run: desktop-file-validate data/dev.grekto.Photos.desktop
 
       - name: Build the .deb
         run: scripts/build-deb.sh
 
       - name: Install the package and smoke-test it
         run: |
-          sudo apt-get install -y --no-install-recommends ./dist/fotos_*_all.deb
-          fotos --version
+          sudo apt-get install -y --no-install-recommends ./dist/photos_*_all.deb
+          photos --version
           # The app must stay alive for 6 s on a virtual display (timeout exits with 124).
           # Output goes to a file: helper daemons started by GTK would otherwise keep the step's pipe open.
           export NO_AT_BRIDGE=1
           set +e
-          xvfb-run -a timeout -k 2 6 fotos > /tmp/fotos-smoke.log 2>&1 < /dev/null
+          xvfb-run -a timeout -k 2 6 photos > /tmp/photos-smoke.log 2>&1 < /dev/null
           code=$?
           set -e
-          cat /tmp/fotos-smoke.log
+          cat /tmp/photos-smoke.log
           test "$code" = "124"
 
       - name: Upload the package as a build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fotos-deb
+          name: photos-deb
           path: |
             dist/*.deb
             dist/*.sha256
@@ -70,6 +70,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.sha256 \
-            --title "Fotos for Linux ${GITHUB_REF_NAME#v}" \
+            --title "Photos for Linux ${GITHUB_REF_NAME#v}" \
             --notes-file RELEASE_NOTES.md \
             --verify-tag

@@ -29,9 +29,9 @@ class ViewerWindow(Gtk.ApplicationWindow):
         self.app_ref = app
         self.items = list(items)
         self.index = max(0, min(index, len(self.items) - 1))
-        self.get_style_context().add_class("fotos")
+        self.get_style_context().add_class("photos")
         self.set_title(_("Photos"))
-        self.set_icon_name("fotos")
+        self.set_icon_name("photos")
         self.set_default_size(*settings.get("viewer_size"))
         if settings.get("viewer_maximized"):
             self.maximize()
@@ -65,7 +65,7 @@ class ViewerWindow(Gtk.ApplicationWindow):
     # ───────────────────────── construction ─────────────────────────
     def _build(self):
         hb = Gtk.HeaderBar()
-        hb.get_style_context().add_class("fotos-hb")
+        hb.get_style_context().add_class("photos-hb")
         hb.set_show_close_button(True)
         hb.set_decoration_layout(":minimize,maximize,close")
         self.hb = hb
@@ -85,7 +85,7 @@ class ViewerWindow(Gtk.ApplicationWindow):
         # editor: back
         self.editor_back = ui.icon_button("back", _("Back"), classes=["flat-icon"], on_click=self.close_editor)
         hb.pack_start(self.editor_back)
-        self.title_lb = ui.label("", ["fotos-hb-title"], xalign=0.5)
+        self.title_lb = ui.label("", ["photos-hb-title"], xalign=0.5)
         self.title_lb.set_ellipsize(3)
         self.title_lb.set_max_width_chars(60)
         hb.set_custom_title(self.title_lb)
@@ -250,7 +250,7 @@ class ViewerWindow(Gtk.ApplicationWindow):
         m.add_item(_("Gallery"), self.app_ref.open_gallery, icon="photo", subtitle=_("Browse the whole collection"))
         try:
             mime = Gio.content_type_guess(self.item.path, None)[0]
-            apps = [a for a in Gio.AppInfo.get_all_for_type(mime) if "fotos" not in (a.get_id() or "").lower()][:3]
+            apps = [a for a in Gio.AppInfo.get_all_for_type(mime) if "photos" not in (a.get_id() or "").lower()][:3]
         except Exception:  # noqa: BLE001
             apps = []
         if apps:

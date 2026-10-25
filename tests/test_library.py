@@ -3,8 +3,8 @@
 import os, sys, datetime, tempfile, shutil
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from PIL import Image
-from fotos import library, actions, imgops
-from fotos.canvas import next_zoom
+from photos import library, actions, imgops
+from photos.canvas import next_zoom
 
 
 def mk(tmp, name, size=(40, 20), when=None):

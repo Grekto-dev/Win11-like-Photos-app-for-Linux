@@ -8,16 +8,16 @@ here = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, os.path.dirname(here))
 
 if "--version" in sys.argv[1:]:
-    from fotos import __version__
+    from photos import __version__
 
-    print("fotos", __version__)
+    print("photos", __version__)
     sys.exit(0)
 
-from fotos import i18n  # noqa: E402
+from photos import i18n  # noqa: E402
 
 i18n.init()  # must run before GTK is imported
 
-from fotos.app import main  # noqa: E402
+from photos.app import main  # noqa: E402
 
 if __name__ == "__main__":
     sys.exit(main())

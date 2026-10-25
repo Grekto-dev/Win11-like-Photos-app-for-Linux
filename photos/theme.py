@@ -107,20 +107,20 @@ FONT = '"Segoe UI Variable", "Segoe UI", "Inter", "Noto Sans", "Ubuntu Sans", "C
 def build_css(p):
     return """
 * { -gtk-icon-style: symbolic; }
-window.fotos, .fotos-window, .fotos-root { background-color: %(bg)s; color: %(fg)s; font-family: %(font)s; font-size: 13px; }
-.fotos label { color: %(fg)s; font-family: %(font)s; }
-.fotos .muted, .fotos label.muted { color: %(muted)s; }
-.fotos .faint, .fotos label.faint { color: %(faint)s; }
-.fotos .link, .fotos label.link { color: %(link)s; }
-.fotos .danger, .fotos label.danger { color: %(danger)s; }
+window.photos, .photos-window, .photos-root { background-color: %(bg)s; color: %(fg)s; font-family: %(font)s; font-size: 13px; }
+.photos label { color: %(fg)s; font-family: %(font)s; }
+.photos .muted, .photos label.muted { color: %(muted)s; }
+.photos .faint, .photos label.faint { color: %(faint)s; }
+.photos .link, .photos label.link { color: %(link)s; }
+.photos .danger, .photos label.danger { color: %(danger)s; }
 
-headerbar.fotos-hb, .fotos-hb { background: %(bg)s; background-image: none; border: none; box-shadow: none; min-height: 48px; padding: 0 4px; color: %(fg)s; }
-headerbar.fotos-hb:backdrop { background: %(bg)s; }
-headerbar.fotos-hb button.titlebutton { color: %(fg)s; background: transparent; background-image: none; border: none; box-shadow: none; border-radius: 0; min-width: 46px; min-height: 48px; padding: 0; margin: 0; -gtk-icon-shadow: none; }
-headerbar.fotos-hb button.titlebutton:hover { background-color: %(hover)s; }
-headerbar.fotos-hb button.titlebutton.close:hover { background-color: #c42b1c; color: #ffffff; }
-headerbar.fotos-hb .title, headerbar.fotos-hb label { color: %(fg)s; font-size: 12px; }
-.fotos-hb-title { font-size: 12px; }
+headerbar.photos-hb, .photos-hb { background: %(bg)s; background-image: none; border: none; box-shadow: none; min-height: 48px; padding: 0 4px; color: %(fg)s; }
+headerbar.photos-hb:backdrop { background: %(bg)s; }
+headerbar.photos-hb button.titlebutton { color: %(fg)s; background: transparent; background-image: none; border: none; box-shadow: none; border-radius: 0; min-width: 46px; min-height: 48px; padding: 0; margin: 0; -gtk-icon-shadow: none; }
+headerbar.photos-hb button.titlebutton:hover { background-color: %(hover)s; }
+headerbar.photos-hb button.titlebutton.close:hover { background-color: #c42b1c; color: #ffffff; }
+headerbar.photos-hb .title, headerbar.photos-hb label { color: %(fg)s; font-size: 12px; }
+.photos-hb-title { font-size: 12px; }
 
 button.fbtn, menubutton.fbtn > button, .fbtn { background: transparent; background-image: none; border: 1px solid transparent; box-shadow: none; border-radius: 4px; padding: 0 8px; min-height: 32px; min-width: 32px; color: %(fg)s; font-size: 13px; -gtk-icon-shadow: none; text-shadow: none; outline-width: 0; }
 button.fbtn:hover, menubutton.fbtn > button:hover { background-color: %(hover)s; }

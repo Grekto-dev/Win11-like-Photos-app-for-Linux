@@ -1,8 +1,11 @@
-# Fotos for Linux
+# Win11-like Photos app for Linux
 
 An independent re-creation of the **Photos** app from Windows 11, written in Python + GTK 3 for Linux
 (developed and tested on Linux Mint / Cinnamon). Its look and behaviour were studied on the running Windows app;
 **no Microsoft code, icons or other assets are used** — all code and SVG icons are original.
+
+The app is called **Photos**; its window title, menu entry and About text follow the language chosen in Settings
+(for example *Fotos* in Portuguese and Spanish, *照片* in Chinese).
 
 License: [Apache-2.0](LICENSE).
 
@@ -30,10 +33,10 @@ Clipchamp, visual search / OCR and the lock-screen option.
 
 ### From the `.deb` (Debian, Ubuntu, Linux Mint)
 
-Download `fotos_<version>_all.deb` from the [Releases](../../releases) page, then:
+Download `photos_<version>_all.deb` from the [Releases](../../releases) page, then:
 
 ```bash
-sudo apt install ./fotos_0.1.0_all.deb
+sudo apt install ./photos_1.0.1_all.deb
 ```
 
 ### From source
@@ -42,32 +45,32 @@ Requirements: Python ≥ 3.10, PyGObject, GTK 3, Pillow, librsvg (SVG loader); o
 
 ```bash
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 python3-pil librsvg2-common ffmpegthumbnailer
-git clone https://github.com/Grekto-dev/fotos-linux.git
-cd fotos-linux
+git clone https://github.com/Grekto-dev/Win11-like-Photos-app-for-Linux.git
+cd Win11-like-Photos-app-for-Linux
 ./install.sh              # symlink in ~/.local/bin, desktop entry and icon (./install.sh --uninstall to remove)
 ```
 
 ## Usage
 
 ```bash
-fotos                        # open the Gallery
-fotos photo.jpg              # open a file in the viewer (siblings are browsable)
-fotos --slideshow ~/Pictures # start a slideshow
-fotos --edit photo.jpg       # open straight in the editor
-fotos --settings             # open the settings page
+photos                        # open the Gallery
+photos photo.jpg              # open a file in the viewer (siblings are browsable)
+photos --slideshow ~/Pictures # start a slideshow
+photos --edit photo.jpg       # open straight in the editor
+photos --settings             # open the settings page
 ```
 
 Shortcuts: `Ctrl+E` edit · `Ctrl+R` rotate · `Del` delete · `Ctrl+P` print · `Ctrl+S` save as · `Ctrl+C` copy ·
 `Ctrl+0` fit · `Ctrl+1` actual size · `Ctrl +/-` zoom · `F` filmstrip · `Alt+Enter` information · `F2` rename ·
 `F5` slideshow · `F11` full screen · `Ctrl+B` set as desktop background.
 
-Settings are stored in `~/.config/fotos/settings.json`; thumbnails in `~/.cache/fotos`.
+Settings are stored in `~/.config/photos/settings.json`; thumbnails in `~/.cache/photos` (data from the former `fotos` directories is migrated automatically).
 
 ## Translations
 
-Catalogs live in `fotos/locales/<code>.json`. Source strings are the English messages used in the code with `_("…")`,
+Catalogs live in `photos/locales/<code>.json`. Source strings are the English messages used in the code with `_("…")`,
 `N_("…")` and `ngettext("singular", "plural", n)`; a value is a string, or `["singular", "plural"]` for plural messages.
-To add a language: create the catalog, add it to `LANGUAGES` (and `MONTHS`/`DATE_PATTERNS`) in `fotos/i18n.py`, and run
+To add a language: create the catalog, add it to `LANGUAGES` (and `MONTHS`/`DATE_PATTERNS`) in `photos/i18n.py`, and run
 `python3 tests/test_i18n.py`, which checks that every message is translated and that `%s`/`%d` placeholders match.
 
 ## Development
@@ -75,15 +78,15 @@ To add a language: create the catalog, add it to `LANGUAGES` (and `MONTHS`/`DATE
 ```bash
 python3 tests/test_library.py   # library, actions, zoom steps, editing pipeline
 python3 tests/test_i18n.py      # catalogs, plurals, dates, persistence
-scripts/build-deb.sh            # builds dist/fotos_<version>_all.deb
+scripts/build-deb.sh            # builds dist/photos_<version>_all.deb
 ```
 
 Notes about the observed original behaviour are in [`docs/DESIGN-NOTES.md`](docs/DESIGN-NOTES.md).
 
 ## Releases
 
-Pushing a tag such as `v0.1.0` runs `.github/workflows/release.yml`: it runs the tests, builds the `.deb`
-and publishes it (with a SHA-256 file) as a GitHub Release. The tag must match `fotos/__init__.py` (`__version__`).
+Pushing a tag such as `v1.0.1` runs `.github/workflows/release.yml`: it runs the tests, builds the `.deb`
+and publishes it (with a SHA-256 file) as a GitHub Release. The tag must match `photos/__init__.py` (`__version__`).
 
 ## Trademarks
 

@@ -80,9 +80,9 @@ class MainWindow(Gtk.ApplicationWindow):
     def __init__(self, app):
         super().__init__(application=app)
         self.app_ref = app
-        self.get_style_context().add_class("fotos")
+        self.get_style_context().add_class("photos")
         self.set_title(_("Photos"))
-        self.set_icon_name("fotos")
+        self.set_icon_name("photos")
         self.set_default_size(*settings.get("main_size"))
         if settings.get("main_maximized"):
             self.maximize()
@@ -107,14 +107,14 @@ class MainWindow(Gtk.ApplicationWindow):
     # ───────────────────────── construction ─────────────────────────
     def _build(self):
         hb = Gtk.HeaderBar()
-        hb.get_style_context().add_class("fotos-hb")
+        hb.get_style_context().add_class("photos-hb")
         hb.set_show_close_button(True)
         hb.set_decoration_layout(":minimize,maximize,close")
         self.hb = hb
         title = Gtk.Box(spacing=10)
         title.set_margin_start(8)
         title.pack_start(icons.Icon("photo", 20, "accent"), False, False, 0)
-        title.pack_start(ui.label(_("Photos"), ["fotos-hb-title"]), False, False, 0)
+        title.pack_start(ui.label(_("Photos"), ["photos-hb-title"]), False, False, 0)
         hb.pack_start(title)
         self.search = Gtk.SearchEntry()
         self.search.get_style_context().add_class("fsearch")
@@ -138,7 +138,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.overlay.add(self.pages)
 
         main = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
-        main.get_style_context().add_class("fotos-root")
+        main.get_style_context().add_class("photos-root")
         main.get_style_context().add_class("fpaned")
         self.paned = main
         self.pages.add_named(main, "main")

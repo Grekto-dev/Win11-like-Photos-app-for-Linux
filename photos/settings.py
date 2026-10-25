@@ -1,13 +1,27 @@
 # Copyright 2026 Grekto-dev
 # SPDX-License-Identifier: Apache-2.0
-"""Persistent settings (JSON in ~/.config/fotos/settings.json)."""
+"""Persistent settings (JSON in ~/.config/photos/settings.json)."""
 import json
 import os
 import threading
 
-CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "fotos")
-CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "fotos")
+CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "photos")
+CACHE_DIR = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), "photos")
 PATH = os.path.join(CONFIG_DIR, "settings.json")
+
+
+def _migrate_legacy():
+    """The app used to be called "fotos": move its settings/cache over once."""
+    for new in (CONFIG_DIR, CACHE_DIR):
+        old = os.path.join(os.path.dirname(new), "fotos")
+        if not os.path.isdir(new) and os.path.isdir(old):
+            try:
+                os.rename(old, new)
+            except OSError:
+                pass
+
+
+_migrate_legacy()
 
 DEFAULTS = {
     "language": "en",           # en | zh_CN | hi | es | fr | ar | pt_BR

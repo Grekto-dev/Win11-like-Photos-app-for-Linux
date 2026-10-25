@@ -1,4 +1,4 @@
-First public release of **Fotos for Linux**, an independent re-creation of the Windows 11 Photos app for GTK 3.
+Release **1.0.1** of **Win11-like Photos app for Linux**, an independent re-creation of the Windows 11 Photos app for GTK 3.
 
 **Highlights**
 - Gallery with justified/square grids, date groups, search, sorting, filters, favorites, selection mode and folder tree.
@@ -8,8 +8,8 @@ First public release of **Fotos for Linux**, an independent re-creation of the W
 
 **Install**
 ```bash
-sudo apt install ./fotos_0.1.0_all.deb
+sudo apt install ./photos_1.0.1_all.deb
 ```
-Verify the download with `sha256sum -c fotos_0.1.0_all.deb.sha256`.
+Verify the download with `sha256sum -c photos_1.0.1_all.deb.sha256`.
 
 Licensed under Apache-2.0. No Microsoft code or assets are included.
