@@ -70,6 +70,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.sha256 \
-            --title "Photos for Linux ${GITHUB_REF_NAME#v}" \
+            --title "Win11-like Photos app for Linux ${GITHUB_REF_NAME#v}" \
             --notes-file RELEASE_NOTES.md \
             --verify-tag
