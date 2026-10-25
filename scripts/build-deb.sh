@@ -52,8 +52,8 @@ Priority: optional
 Architecture: all
 Depends: python3 (>= 3.10), python3-gi, python3-gi-cairo, python3-cairo, gir1.2-gtk-3.0, gir1.2-gdkpixbuf-2.0, gir1.2-pango-1.0, python3-pil, librsvg2-common
 Recommends: ffmpegthumbnailer, gvfs
-Replaces: fotos (<< 1.0.1)
-Conflicts: fotos (<< 1.0.1)
+Replaces: fotos
+Conflicts: fotos
 Installed-Size: $SIZE
 Maintainer: Grekto-dev <176182924+Grekto-dev@users.noreply.github.com>
 Homepage: https://github.com/Grekto-dev/Win11-like-Photos-app-for-Linux
