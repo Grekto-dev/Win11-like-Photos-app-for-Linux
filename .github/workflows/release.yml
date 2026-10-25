@@ -1,0 +1,71 @@
+name: Release
+
+# Pushing a tag like v0.1.0 tests the project, builds fotos_<version>_all.deb and publishes it as a GitHub Release.
+# "Run workflow" (manual) only builds the package and keeps it as a build artifact.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deb:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-gi python3-gi-cairo python3-cairo gir1.2-gtk-3.0 gir1.2-gdkpixbuf-2.0 gir1.2-pango-1.0 \
+            python3-pil librsvg2-common xvfb fakeroot dpkg-dev desktop-file-utils
+
+      - name: Check that the tag matches the version in the code
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          code_version="$(python3 -c 'import re; print(re.search(r"__version__ = \"([^\"]+)\"", open("fotos/__init__.py").read()).group(1))')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          echo "tag=$tag_version code=$code_version"
+          test "$tag_version" = "$code_version"
+
+      - name: Run the tests
+        run: |
+          xvfb-run -a python3 tests/test_library.py
+          xvfb-run -a python3 tests/test_i18n.py
+
+      - name: Validate the desktop entry
+        run: desktop-file-validate data/dev.grekto.Fotos.desktop
+
+      - name: Build the .deb
+        run: scripts/build-deb.sh
+
+      - name: Install the package and smoke-test it
+        run: |
+          sudo apt-get install -y ./dist/fotos_*_all.deb
+          fotos --version
+          # the app must stay alive for 6 s on a virtual display (timeout exits with 124)
+          set +e
+          xvfb-run -a timeout 6 fotos
+          code=$?
+          test "$code" = "124"
+
+      - name: Upload the package as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fotos-deb
+          path: |
+            dist/*.deb
+            dist/*.sha256
+
+      - name: Publish the GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/*.deb dist/*.sha256 \
+            --title "Fotos for Linux ${GITHUB_REF_NAME#v}" \
+            --notes-file RELEASE_NOTES.md \
+            --verify-tag
