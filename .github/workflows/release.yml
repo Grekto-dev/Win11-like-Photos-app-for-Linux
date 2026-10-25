@@ -44,12 +44,16 @@ jobs:
 
       - name: Install the package and smoke-test it
         run: |
-          sudo apt-get install -y ./dist/fotos_*_all.deb
+          sudo apt-get install -y --no-install-recommends ./dist/fotos_*_all.deb
           fotos --version
-          # the app must stay alive for 6 s on a virtual display (timeout exits with 124)
+          # The app must stay alive for 6 s on a virtual display (timeout exits with 124).
+          # Output goes to a file: helper daemons started by GTK would otherwise keep the step's pipe open.
+          export NO_AT_BRIDGE=1
           set +e
-          xvfb-run -a timeout 6 fotos
+          xvfb-run -a timeout -k 2 6 fotos > /tmp/fotos-smoke.log 2>&1 < /dev/null
           code=$?
+          set -e
+          cat /tmp/fotos-smoke.log
           test "$code" = "124"
 
       - name: Upload the package as a build artifact
