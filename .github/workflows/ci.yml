@@ -23,5 +23,6 @@ jobs:
         run: |
           xvfb-run -a python3 tests/test_library.py
           xvfb-run -a python3 tests/test_i18n.py
+          xvfb-run -a python3 tests/test_open_files.py
       - name: Package builds
         run: scripts/build-deb.sh

@@ -64,9 +64,22 @@ class Item:
         return self.taken
 
 
-def is_media(path):
+def is_media(path, *, sniff=False):
+    """Match media extensions; sniff image headers only for explicitly opened files.
+
+    Portals and other apps can supply real images with temporary or missing
+    extensions. Keep library scans extension-only to avoid probing every file.
+    """
     ext = os.path.splitext(path)[1].lower()
-    return ext in IMAGE_EXTS or ext in VIDEO_EXTS
+    if ext in IMAGE_EXTS or ext in VIDEO_EXTS:
+        return True
+    if sniff:
+        try:
+            info = GdkPixbuf.Pixbuf.get_file_info(path)
+            return bool(info and info[0])
+        except (GLib.Error, OSError):
+            pass
+    return False
 
 
 def is_image(path):

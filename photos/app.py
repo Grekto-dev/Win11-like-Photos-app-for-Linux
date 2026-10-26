@@ -107,7 +107,7 @@ class PhotosApp(Gtk.Application):
             else:
                 self.open_gallery()
             return
-        files = [p for p in paths if os.path.isfile(p) and library.is_media(p)]
+        files = [p for p in paths if os.path.isfile(p) and library.is_media(p, sniff=True)]
         if not files:
             self.open_gallery()
             return
