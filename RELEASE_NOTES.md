@@ -1,15 +1,23 @@
-First public release of **Win11-like Photos app for Linux**, an independent re-creation of the Windows 11 Photos app for GTK 3.
+# Photos 0.1.1
 
-**Highlights**
-- Gallery with justified/square grids, date groups, search, sorting, filters, favorites, selection mode and folder tree.
-- Viewer with smooth zoom, filmstrip, Information (EXIF) panel, full screen, animated GIF, resize and "set as background".
-- Slideshow, and an editor with Crop, Adjust, Filters and Markup.
-- Seven interface languages (English default, Português (Brasil), Español, Français, 简体中文, हिन्दी, العربية), selectable in Settings.
+Bug-fix release of **Win11-like Photos app for Linux**.
 
-**Install**
+## Fixed
+
+- Images opened from the file manager or another application now open in the viewer even when their file name has a temporary, missing or nonstandard extension. Previously, valid images such as `.xdp-…png…tmp-…` were rejected by the extension filter and the app opened the Gallery instead.
+- Explicit file opening now checks image headers when the extension is unrecognized. Bulk gallery scans keep their existing extension filters to avoid probing unrelated files.
+
+## Verification
+
+- Regression tests cover temporary/hidden file names, missing and incorrect extensions, ordinary image navigation, and rejection of non-image/missing files.
+- The regression suite runs in both CI and the release workflow alongside the library and translation tests.
+
+## Install or update
+
 ```bash
-sudo apt install ./photos_0.1.0_all.deb
+sudo apt install ./photos_0.1.1_all.deb
 ```
-Verify the download with `sha256sum -c photos_0.1.0_all.deb.sha256`.
+
+Verify the download with `sha256sum -c photos_0.1.1_all.deb.sha256`.
 
 Licensed under Apache-2.0. No Microsoft code or assets are included.
