@@ -227,8 +227,9 @@ radiobutton.fradio:focus radio, radiobutton.fradio { outline-style: none; }
 radiobutton.fradio label, checkbutton.fcheck label { margin-left: 4px; }
 
 scrollbar { background: transparent; border: none; }
-scrollbar slider { background-color: %(faint)s; border-radius: 3px; min-width: 4px; min-height: 40px; border: 2px solid transparent; }
-scrollbar.vertical slider { min-width: 4px; }
+scrollbar slider { background-color: %(faint)s; border-radius: 3px; min-width: 4px; min-height: 4px; border: 2px solid transparent; }
+scrollbar.vertical slider { min-height: 40px; }
+scrollbar.horizontal slider { min-width: 40px; }
 scrollbar:hover slider { background-color: %(muted)s; }
 scrolledwindow.fscroll, scrolledwindow.fscroll viewport { background: transparent; border: none; }
 scrolledwindow undershoot.top, scrolledwindow undershoot.bottom, scrolledwindow undershoot.left, scrolledwindow undershoot.right, scrolledwindow overshoot { background: none; background-image: none; border: none; }
