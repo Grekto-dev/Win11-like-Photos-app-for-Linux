@@ -36,7 +36,7 @@ Clipchamp, visual search / OCR and the lock-screen option.
 Download `photos_<version>_all.deb` from the [Releases](../../releases) page, then:
 
 ```bash
-sudo apt install ./photos_0.1.1_all.deb
+sudo apt install ./photos_0.1.2_all.deb
 ```
 
 ### From source
@@ -85,7 +85,7 @@ Notes about the observed original behaviour are in [`docs/DESIGN-NOTES.md`](docs
 
 ## Releases
 
-Pushing a tag such as `v0.1.1` runs `.github/workflows/release.yml`: it runs the tests, builds the `.deb`
+Pushing a tag such as `v0.1.2` runs `.github/workflows/release.yml`: it runs the tests, builds the `.deb`
 and publishes it (with a SHA-256 file) as a GitHub Release. The tag must match `photos/__init__.py` (`__version__`).
 
 ## Trademarks

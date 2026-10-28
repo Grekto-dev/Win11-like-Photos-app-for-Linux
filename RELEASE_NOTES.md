@@ -1,23 +1,21 @@
-# Photos 0.1.1
+# Photos 0.1.2
 
 Bug-fix release of **Win11-like Photos app for Linux**.
 
 ## Fixed
 
-- Images opened from the file manager or another application now open in the viewer even when their file name has a temporary, missing or nonstandard extension. Previously, valid images such as `.xdp-…png…tmp-…` were rejected by the extension filter and the app opened the Gallery instead.
-- Explicit file opening now checks image headers when the extension is unrecognized. Bulk gallery scans keep their existing extension filters to avoid probing unrelated files.
+- Crop editor: the horizontal scrollbar of the aspect-ratio selector no longer appears as a wide gray band covering the ratio labels. The shared scrollbar style forced a 40 px minimum height on every scrollbar; thickness is now 4 px on both axes and the 40 px minimum length applies only along each bar's own direction.
 
 ## Verification
 
-- Regression tests cover temporary/hidden file names, missing and incorrect extensions, ordinary image navigation, and rejection of non-image/missing files.
-- The regression suite runs in both CI and the release workflow alongside the library and translation tests.
+- New GTK regression tests (scrollbar thickness, row overflow, label overlap) run in CI and in the release workflow, together with the library, translation and file-opening tests.
 
 ## Install or update
 
 ```bash
-sudo apt install ./photos_0.1.1_all.deb
+sudo apt install ./photos_0.1.2_all.deb
 ```
 
-Verify the download with `sha256sum -c photos_0.1.1_all.deb.sha256`.
+Verify the download with `sha256sum -c photos_0.1.2_all.deb.sha256`.
 
 Licensed under Apache-2.0. No Microsoft code or assets are included.
