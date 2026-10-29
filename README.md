@@ -66,6 +66,15 @@ Shortcuts: `Ctrl+E` edit · `Ctrl+R` rotate · `Del` delete · `Ctrl+P` print ·
 
 Settings are stored in `~/.config/photos/settings.json`; thumbnails in `~/.cache/photos` (data from the former `fotos` directories is migrated automatically).
 
+### Old hardware and network folders
+
+- Opening an image shows the viewer at once; the rest of its folder is listed in the background and added to the
+  filmstrip and the previous/next arrows when ready.
+- The Gallery shows items while it is still scanning. Image sizes and capture dates are read by several threads at a time
+  (so network latency overlaps) and remembered in `~/.cache/photos/meta.sqlite3`, so opening a big or remote folder again
+  does not reopen every image. The cache is only a speed-up: deleting it is always safe.
+- Nothing that touches the disk runs on the interface thread, so an unreachable share cannot freeze the window.
+
 ## Translations
 
 Catalogs live in `photos/locales/<code>.json`. Source strings are the English messages used in the code with `_("…")`,
@@ -78,6 +87,8 @@ To add a language: create the catalog, add it to `LANGUAGES` (and `MONTHS`/`DATE
 ```bash
 python3 tests/test_library.py   # library, actions, zoom steps, editing pipeline
 python3 tests/test_i18n.py      # catalogs, plurals, dates, persistence
+python3 tests/test_slow_storage.py     # metadata cache, parallel scan, no UI-thread disk access
+python3 tests/test_viewer_siblings.py  # instant open + background folder listing (needs a display)
 scripts/build-deb.sh            # builds dist/photos_<version>_all.deb
 ```
 

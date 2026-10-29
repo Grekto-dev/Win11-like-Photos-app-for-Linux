@@ -24,12 +24,17 @@ class OpenRecorder:
     def __init__(self):
         self.gallery_opened = False
         self.viewer = None
+        self.siblings_requested = False
 
     def open_gallery(self):
         self.gallery_opened = True
 
     def open_viewer(self, items, index, **options):
         self.viewer = (items, index, options)
+        return "WINDOW"
+
+    def _adopt_siblings_async(self, win, item):
+        self.siblings_requested = True
 
 
 class ExplicitFileTests(unittest.TestCase):
@@ -47,7 +52,8 @@ class ExplicitFileTests(unittest.TestCase):
         self.assertIsNotNone(routed.viewer)
         items, index, _ = routed.viewer
         self.assertEqual(items[index].path, str(image))
-        self.assertEqual((items[index].w, items[index].h), (42, 31))
+        # size and date are read lazily by the viewer's loader thread, never before the window is shown
+        self.assertFalse(items[index].meta)
 
 
     def test_header_detection_preserves_scan_filters(self):
@@ -74,15 +80,19 @@ class ExplicitFileTests(unittest.TestCase):
                 self.assertTrue(routed.gallery_opened)
                 self.assertIsNone(routed.viewer)
 
-    def test_standard_image_still_selects_itself_among_siblings(self):
+    def test_standard_image_opens_alone_first_and_finds_its_siblings_afterwards(self):
         first, selected = self.folder / 'a.jpg', self.folder / 'b.jpg'
         for path in (first, selected):
             Image.new('RGB', (42, 31)).save(path)
         routed: Any = OpenRecorder()
         PhotosApp._open_paths(routed, [str(selected)], {})
         self.assertFalse(routed.gallery_opened)
-        self.assertEqual(len(routed.viewer[0]), 2)
-        self.assertEqual(routed.viewer[0][routed.viewer[1]].path, str(selected))
+        self.assertEqual([i.path for i in routed.viewer[0]], [str(selected)])
+        self.assertTrue(routed.siblings_requested, 'the folder must be listed after the window is showing')
+        from photos import library
+        sibs, idx = library.list_siblings(str(selected))
+        self.assertEqual(len(sibs), 2)
+        self.assertEqual(sibs[idx].path, str(selected))
 
 
 if __name__ == '__main__':

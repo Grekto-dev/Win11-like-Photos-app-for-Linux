@@ -3,6 +3,7 @@
 """Application (Gtk.Application): single instance, Gallery window and viewers."""
 import os
 import sys
+import threading
 
 import gi
 
@@ -95,39 +96,88 @@ class PhotosApp(Gtk.Application):
         return win
 
     def _open_paths(self, paths, opts):
+        """Shows the requested image(s) as fast as possible.
+
+        A single file opens at once with only itself in the list: reading its neighbours (a directory
+        listing plus one metadata read per image) is what made network shares take many seconds, so that
+        part happens afterwards on a worker thread and is merged into the open viewer."""
         if not paths:
             self.open_gallery()
             return
+        slideshow = bool(opts.get("slideshow"))
         if len(paths) == 1 and os.path.isdir(paths[0]):
-            items = library.sort_items(library.list_folder(paths[0], recursive=False), "name", False)
-            for it in items:
-                library.read_meta(it)
-            if items:
-                self.open_viewer(items, 0, slideshow=bool(opts.get("slideshow")))
-            else:
-                self.open_gallery()
+            self._open_when_listed(paths[0], lambda items, idx: self.open_viewer(items, 0, slideshow=slideshow))
             return
         files = [p for p in paths if os.path.isfile(p) and library.is_media(p, sniff=True)]
         if not files:
             self.open_gallery()
             return
         if len(files) == 1:
-            folder = os.path.dirname(files[0])
-            sibs = [i for i in library.list_folder(folder, recursive=False)]
-            sibs = library.sort_items(sibs, "name", False)
-            idx = next((k for k, i in enumerate(sibs) if os.path.samefile(i.path, files[0])), -1)
-            if idx < 0:
-                import os as _os
-                it = library.Item(files[0], _os.stat(files[0]))
-                sibs, idx = [it], 0
-            for it in sibs:
-                library.read_meta(it)
-            self.open_viewer(sibs, idx, slideshow=bool(opts.get("slideshow")), edit=bool(opts.get("edit")))
+            path, edit = files[0], bool(opts.get("edit"))
+            if slideshow:
+                self._open_when_listed(path, lambda items, idx: self.open_viewer(items, idx, slideshow=True, edit=edit))
+                return
+            try:
+                item = library.Item(path, os.stat(path))
+            except OSError:
+                self.open_gallery()
+                return
+            win = self.open_viewer([item], 0, edit=edit)
+            self._adopt_siblings_async(win, item)
+            return
+        items = []
+        for p in files:
+            try:
+                items.append(library.Item(p, os.stat(p)))
+            except OSError:
+                continue
+        if items:
+            self.open_viewer(items, 0, slideshow=slideshow)
         else:
-            items = [library.Item(p, os.stat(p)) for p in files]
-            for it in items:
-                library.read_meta(it)
-            self.open_viewer(items, 0, slideshow=bool(opts.get("slideshow")))
+            self.open_gallery()
+
+    def _open_when_listed(self, path, opener):
+        """Lists a folder (or the folder of a file) off the UI thread, then calls opener(items, index).
+
+        The application is held meanwhile: with no window yet it would otherwise exit before the list is ready."""
+        self.hold()
+
+        def work():
+            try:
+                if os.path.isdir(path):
+                    items = library.sort_items(library.list_folder(path, recursive=False), "name", False)
+                    idx = 0
+                else:
+                    items, idx = library.list_siblings(path)
+            except OSError:
+                items, idx = [], 0
+            GLib.idle_add(finish, items, idx)
+
+        def finish(items, idx):
+            try:
+                if items:
+                    opener(items, idx)
+                else:
+                    self.open_gallery()
+            finally:
+                self.release()
+            return False
+        threading.Thread(target=work, daemon=True, name="photos-list").start()
+
+    def _adopt_siblings_async(self, win, item):
+        """Lists the folder of an already open single-file viewer and gives it its neighbours."""
+        def work():
+            try:
+                sibs, _idx = library.list_siblings(item.path)
+            except OSError:
+                return
+            GLib.idle_add(adopt, sibs)
+
+        def adopt(sibs):
+            if win in self.viewers:
+                win.adopt_siblings(sibs)
+            return False
+        threading.Thread(target=work, daemon=True, name="photos-siblings").start()
 
     def restart(self):
         """Re-executes the app (used to apply a new language) and lands back on the settings page."""

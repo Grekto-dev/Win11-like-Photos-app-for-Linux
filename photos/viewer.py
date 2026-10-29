@@ -297,8 +297,7 @@ class ViewerWindow(Gtk.ApplicationWindow):
         self.set_title(item.name)
         self._update_bar_meta()
         self.film.set_items(self.items, self.index)
-        self.arrow_prev.set_visible(self.index > 0 and self.arrows_wanted)
-        self.arrow_next.set_visible(self.index < len(self.items) - 1 and self.arrows_wanted)
+        self._update_arrows()
         if item.kind == "video":
             ph = thumbs.cache.best(item)
             self.canvas.clear()
@@ -322,8 +321,33 @@ class ViewerWindow(Gtk.ApplicationWindow):
             self.canvas.clear()
         threading.Thread(target=self._load_thread, args=(item, token, transition), daemon=True).start()
 
+    def _update_arrows(self):
+        self.arrow_prev.set_visible(self.index > 0 and self.arrows_wanted)
+        self.arrow_next.set_visible(self.index < len(self.items) - 1 and self.arrows_wanted)
+
+    def adopt_siblings(self, sibs):
+        """Replaces the single-item list of a viewer opened from one file by the folder's images.
+
+        The folder is listed in the background after the window is already showing; the current item keeps its
+        instance (and with it its size and metadata). Ignored if the list changed meanwhile."""
+        cur = self.item
+        if len(self.items) != 1 or self.items[0] is not cur:
+            return
+        idx = next((k for k, i in enumerate(sibs) if i.path == cur.path), -1)
+        if idx < 0:
+            return
+        sibs = list(sibs)
+        sibs[idx] = cur
+        self.items = sibs
+        self.index = idx
+        self.film.set_items(self.items, self.index)
+        self._update_arrows()
+        self._preload()
+
     def _load_thread(self, item, token, transition):
         try:
+            if not item.meta:
+                library.read_meta(item)      # date and size are only needed for the item actually shown
             pb, anim = self._read(item.path)
         except Exception as exc:  # noqa: BLE001
             GLib.idle_add(self._load_failed, token, str(exc))
@@ -368,6 +392,8 @@ class ViewerWindow(Gtk.ApplicationWindow):
 
     def _preload_thread(self, it):
         try:
+            if not it.meta:
+                library.read_meta(it)
             pb, anim = self._read(it.path)
         except Exception:  # noqa: BLE001
             return

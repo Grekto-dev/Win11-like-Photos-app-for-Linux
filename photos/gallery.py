@@ -100,9 +100,22 @@ class MainWindow(Gtk.ApplicationWindow):
         self.connect("window-state-event", self._on_state)
         self.connect("key-press-event", self._on_key)
         self.connect("notify::is-active", self._on_active)
+        self.connect("destroy", self._on_destroy)
         self.show_all()
         self.set_view(("gallery", None))
         self.rescan()
+
+    _closed = False
+
+    def _on_destroy(self, *_):
+        """Late answers (scan batches, sidebar listings) must not touch a window that is gone."""
+        self._closed = True
+        if self.scanner:
+            self.scanner.cancel()
+        if self.refresh_timer:
+            GLib.source_remove(self.refresh_timer)
+            self.refresh_timer = 0
+        self._tree_token = getattr(self, "_tree_token", 0) + 1
 
     # ───────────────────────── construction ─────────────────────────
     def _build(self):
@@ -202,32 +215,51 @@ class MainWindow(Gtk.ApplicationWindow):
         self.tree_chev.icon.set_icon("chev-down" if on else "chev-right")
 
     def sources(self):
+        """Folders shown in the Gallery. Purely from the settings: probing them here (isdir) would freeze the
+        window for as long as an unreachable network share takes to time out. Missing folders are skipped
+        by the scanner and the sidebar, both of which run off the UI thread."""
         out = [library.pictures_dir()]
         for f in settings.get("folders"):
-            if f not in out and os.path.isdir(f):
+            if f not in out:
                 out.append(f)
-        return [f for f in out if os.path.isdir(f)]
+        return out
 
     def _rebuild_tree(self):
         for c in self.tree_box.get_children():
             self.tree_box.remove(c)
         for k in [k for k in self.side_items if k[0] == "folder"]:
             del self.side_items[k]
-        for f in self.sources():
-            self._add_folder_row(self.tree_box, f, 1, root=True)
-        self.tree_box.show_all()
-        self._sync_side_selection()
+        self._tree_token = getattr(self, "_tree_token", 0) + 1
+        token, roots = self._tree_token, self.sources()
+
+        def work():
+            data = []
+            for f in roots:
+                subs = self._subdirs(f)
+                if subs is not None:         # unreachable or missing folders are left out
+                    data.append((f, subs))
+            GLib.idle_add(fill, data)
+
+        def fill(data):
+            if token == self._tree_token:
+                for f, subs in data:
+                    self._add_folder_row(self.tree_box, f, 1, subs=subs)
+                self.tree_box.show_all()
+                self._sync_side_selection()
+            return False
+        threading.Thread(target=work, daemon=True, name="photos-tree").start()
 
     def _subdirs(self, path):
+        """Sub-folders of `path`, or None when it cannot be read. May be slow: call it off the UI thread."""
         try:
             with os.scandir(path) as it:
                 return sorted([e.path for e in it if e.is_dir(follow_symlinks=False) and not e.name.startswith(".")],
                               key=lambda p: library.strip_accents(os.path.basename(p)))
         except OSError:
-            return []
+            return None
 
-    def _add_folder_row(self, parent, path, depth, root=False):
-        subs = self._subdirs(path)
+    def _add_folder_row(self, parent, path, depth, subs=None):
+        subs = subs or []
         wrap = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
         chev = None
         if subs:
@@ -247,13 +279,25 @@ class MainWindow(Gtk.ApplicationWindow):
             wrap.pack_start(rev, False, False, 0)
             state = {"loaded": False}
 
-            def toggle(_b=None, rev=rev, child_box=child_box, subs=subs, chev=chev, depth=depth, state=state):
+            def fill_children(data, child_box=child_box):
+                if self._closed:
+                    return False
+                for s, sub_subs in data:
+                    self._add_folder_row(child_box, s, depth + 1, subs=sub_subs)
+                child_box.show_all()
+                self._sync_side_selection()
+                return False
+
+            def load_children(subs=subs):
+                # one listing per child (to know whether it gets an expander) - never on the UI thread
+                data = [(s, self._subdirs(s)) for s in subs]
+                GLib.idle_add(fill_children, data)
+
+            def toggle(_b=None, rev=rev, subs=subs, chev=chev, state=state):
                 on = not rev.get_reveal_child()
                 if on and not state["loaded"]:
                     state["loaded"] = True
-                    for s in subs:
-                        self._add_folder_row(child_box, s, depth + 1)
-                    child_box.show_all()
+                    threading.Thread(target=load_children, daemon=True, name="photos-tree").start()
                 rev.set_reveal_child(on)
                 chev.icon.set_icon("chev-down" if on else "chev-right")
             chev.connect("clicked", toggle)
@@ -491,13 +535,15 @@ class MainWindow(Gtk.ApplicationWindow):
         folders = self.sources()
         self.scanning = True
         self._fresh = []
+        self._show_progress = not self.all_items
         if not self.all_items:
             self.body.set_visible_child_name("loading")
         self.scanner = library.Scanner(folders, self._on_batch, self._on_scan_done)
 
     def _on_batch(self, batch):
         self._fresh.extend(batch)
-        if not self.all_items:
+        if self._show_progress:
+            # first scan (nothing on screen yet): show what has arrived so far instead of waiting for the end
             self.all_items = list(self._fresh)
             self._schedule_refresh()
         return None
@@ -511,7 +557,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def _schedule_refresh(self):
         if self.refresh_timer:
             return
-        self.refresh_timer = GLib.timeout_add(250, self._refresh_tick)
+        # a big library is re-sorted and re-laid out on every refresh: space them out so a slow CPU keeps
+        # enough time for decoding thumbnails while the scan is still delivering items
+        delay = 250 if len(self.all_items) < 1000 else 800
+        self.refresh_timer = GLib.timeout_add(delay, self._refresh_tick)
 
     def _refresh_tick(self):
         self.refresh_timer = 0

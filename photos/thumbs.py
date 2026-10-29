@@ -59,7 +59,7 @@ def _load(item, bucket):
         return None
     try:
         os.makedirs(os.path.dirname(dp), exist_ok=True)
-        pb.savev(dp + ".tmp", "png", [], [])
+        pb.savev(dp + ".tmp", "png", ["compression"], ["1"])   # level 1: 3x faster to write, ~8% bigger
         os.replace(dp + ".tmp", dp)
     except Exception:  # noqa: BLE001
         pass

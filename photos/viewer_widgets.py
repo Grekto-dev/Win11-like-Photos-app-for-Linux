@@ -3,6 +3,7 @@
 """Viewer widgets: zoom combo, Information panel, filmstrip."""
 import math
 import os
+import threading
 
 import gi
 
@@ -111,15 +112,45 @@ class InfoPanel(Gtk.Box):
         sc.add(self.fields)
         self.pack_start(sc, True, True, 0)
 
+    _token = 0
+
+    def _on_destroy(self, *_):
+        self._token = -1               # answers still in flight must not touch the destroyed widgets
+
     def update(self, item, w, h):
+        """Shows the item's information. Opening the file for DPI, bit depth and EXIF can take long on a
+        network share, so those parts are read on a worker thread and filled in when they arrive."""
+        if not getattr(self, "_destroy_hooked", False):
+            self._destroy_hooked = True
+            self.connect("destroy", self._on_destroy)
+        self._token += 1
+        token = self._token
+        self._render(item, w, h, None)
+
+        def work():
+            dpi, depth = actions.image_dpi_depth(item.path)
+            extra = actions.exif_fields(item.path)
+            GLib.idle_add(self._extras_ready, token, item, w, h, (dpi, depth), extra)
+        threading.Thread(target=work, daemon=True, name="photos-info").start()
+
+    def _extras_ready(self, token, item, w, h, dpi_depth, extra):
+        if token == self._token:        # ignore answers for an item that is no longer shown
+            self._render(item, w, h, (dpi_depth, extra))
+        return False
+
+    def _render(self, item, w, h, details):
         for c in self.fields.get_children():
             self.fields.remove(c)
-        dpi, depth = actions.image_dpi_depth(item.path)
         self._field(_("File name"), item.name, rename=True)
         self._field(_("Date and time"), library.fmt_datetime(item.taken))
-        self._field(_("Size information"), "%d x %d\n%s    %d dpi    %d bit" % (w, h, library.fmt_size(item.size), dpi, depth))
-        for lab, val in actions.exif_fields(item.path):
-            self._field(lab, val)
+        if details is None:
+            self._field(_("Size information"), "%d x %d\n%s" % (w, h, library.fmt_size(item.size)))
+        else:
+            (dpi, depth), extra = details
+            self._field(_("Size information"),
+                        "%d x %d\n%s    %d dpi    %d bit" % (w, h, library.fmt_size(item.size), dpi, depth))
+            for lab, val in extra:
+                self._field(lab, val)
         self._field(_("Source and folder location"), _("This computer") + "\n" + item.folder, link=True)
         self.fields.show_all()
 
