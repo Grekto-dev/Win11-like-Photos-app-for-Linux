@@ -22,7 +22,7 @@ License: [Apache-2.0](LICENSE).
 - **Editor** — Crop (handles, aspect presets, ±45° straighten, rotate/flip), Adjust (10 controls), Filters (14 presets,
   auto enhance, intensity), Markup (pen, pencil, highlighter, eraser), undo/redo/reset, save / save as copy / copy.
 - **Settings** — theme (light / dark / system), **language**, delete confirmation, mouse-wheel behaviour,
-  zoom preference, slideshow duration, gallery folders.
+  zoom preference, **browsing order**, slideshow duration, gallery folders.
 - **Languages** — English (default), Português (Brasil), Español, Français, 简体中文, हिन्दी and العربية
   (right-to-left layout included). The choice is saved and applied after a restart that the app offers to do for you.
 
@@ -66,6 +66,23 @@ Shortcuts: `Ctrl+E` edit · `Ctrl+R` rotate · `Del` delete · `Ctrl+P` print ·
 
 Settings are stored in `~/.config/photos/settings.json`; thumbnails in `~/.cache/photos` (data from the former `fotos` directories is migrated automatically).
 
+### Browsing order
+
+Settings → *Browsing order* and *Browsing direction* decide how the previous/next arrows (and the filmstrip and slideshow)
+walk through a folder: by **name**, **date created** or **date modified**, ascending or descending. The choice applies to
+every viewer window, also to those already open, and is remembered.
+
+Names are sorted the way photos are numbered, with numbers counted by value, not letter by letter:
+
+| Plain alphabetical order | Browsing order (natural) |
+|---|---|
+| `0, 1, 10, 11, 12, … 19, 2, 20, … 29, 3, 30, 31, 32` | `0, 1, 2, 3, … 9, 10, 11, … 31, 32` |
+
+This also covers zero-padded names (`IMG_0009` before `IMG_0010`), names with several numbers (`Trip 2 day 9` before
+`Trip 2 day 10`) and copies (`foto.jpg`, `foto (1).jpg`, `foto (2).jpg`, `foto (10).jpg`). Case and accents are ignored. The
+Gallery's *Name* sort uses the same rule. "Date taken" is not offered for the arrows: it would require opening every image
+of the folder, which is slow on network shares. Files named one by one on the command line keep the order they were typed.
+
 ### Old hardware and network folders
 
 - Opening an image shows the viewer at once; the rest of its folder is listed in the background and added to the
@@ -89,6 +106,7 @@ python3 tests/test_library.py   # library, actions, zoom steps, editing pipeline
 python3 tests/test_i18n.py      # catalogs, plurals, dates, persistence
 python3 tests/test_slow_storage.py     # metadata cache, parallel scan, no UI-thread disk access
 python3 tests/test_viewer_siblings.py  # instant open + background folder listing (needs a display)
+python3 tests/test_viewer_order.py     # natural name order, browsing order setting (needs a display)
 scripts/build-deb.sh            # builds dist/photos_<version>_all.deb
 ```
 

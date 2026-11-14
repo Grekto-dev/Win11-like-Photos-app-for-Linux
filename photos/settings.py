@@ -28,6 +28,8 @@ DEFAULTS = {
     "theme": "system",          # system | dark | light
     "sort_by": "taken",         # taken | created | modified | name
     "sort_desc": True,
+    "viewer_sort_by": "name",   # order of the previous/next arrows: name | created | modified
+    "viewer_sort_desc": False,
     "media_filter": "all",      # all | photos | videos
     "layout": "cascade",        # cascade | square
     "tile_size": "medium",      # small | medium | large

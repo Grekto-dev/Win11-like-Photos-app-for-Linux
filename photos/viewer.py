@@ -24,9 +24,10 @@ NARROW = 900
 
 
 class ViewerWindow(Gtk.ApplicationWindow):
-    def __init__(self, app, items, index, slideshow=False):
+    def __init__(self, app, items, index, slideshow=False, follow_order=True):
         super().__init__(application=app)
         self.app_ref = app
+        self.follow_order = follow_order      # keep the list in the viewer order chosen in Settings
         self.items = list(items)
         self.index = max(0, min(index, len(self.items) - 1))
         self.get_style_context().add_class("photos")
@@ -340,6 +341,21 @@ class ViewerWindow(Gtk.ApplicationWindow):
         sibs[idx] = cur
         self.items = sibs
         self.index = idx
+        self.resort()                    # the setting may have changed while the folder was being listed
+        self.film.set_items(self.items, self.index)
+        self._update_arrows()
+        self._preload()
+
+    def resort(self):
+        """Puts the list in the viewer order from Settings again, staying on the photo being shown."""
+        if not self.follow_order or len(self.items) < 2:
+            return
+        cur = self.item
+        ordered = library.sort_for_viewer(self.items)
+        idx = next((k for k, i in enumerate(ordered) if i is cur), None)
+        if idx is None or [i.path for i in ordered] == [i.path for i in self.items]:
+            return
+        self.items, self.index = ordered, idx
         self.film.set_items(self.items, self.index)
         self._update_arrows()
         self._preload()

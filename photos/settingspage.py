@@ -12,6 +12,17 @@ from .i18n import _, ngettext  # noqa: F401
 
 
 
+def viewer_order_options():
+    """(value, label) for the order of the previous/next arrows. Only orders that come from the directory listing
+    are offered: sorting by date taken would mean opening every image of the folder."""
+    labels = {"name": _("Name"), "created": _("Date created"), "modified": _("Date modified")}
+    return [(k, labels[k]) for k in library.VIEWER_SORTS]
+
+
+def viewer_direction_options():
+    return [(False, _("Ascending")), (True, _("Descending"))]
+
+
 class SettingsPage(Gtk.Box):
     def __init__(self, win):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
@@ -64,6 +75,11 @@ class SettingsPage(Gtk.Box):
         self._combo_row(col, _("Zoom preference"),
                         _("Choose how to open and display photos and videos smaller than your window"),
                         "zoom_pref", [("actual", _("Display at actual size")), ("fit", _("Fit to window"))])
+        self._combo_row(col, _("Browsing order"),
+                        _("Used by the previous and next arrows. In names, numbers count by value: 2 comes before 10."),
+                        "viewer_sort_by", viewer_order_options())
+        self._combo_row(col, _("Browsing direction"), _("Ascending: A to Z, 1 to 10, oldest first"),
+                        "viewer_sort_desc", viewer_direction_options())
         self._combo_row(col, _("Slide duration"), _("How long each photo is shown in the slideshow"),
                         "slideshow_interval", [(n, _("%d seconds") % n) for n in (3, 5, 10, 30)])
 

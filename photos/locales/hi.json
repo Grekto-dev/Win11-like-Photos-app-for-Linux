@@ -284,5 +284,9 @@
  "Zoom out": "ज़ूम आउट",
  "Zoom out (Ctrl+Minus)": "ज़ूम आउट (Ctrl+माइनस)",
  "Zoom preference": "ज़ूम प्राथमिकता",
- "Zoom selection": "ज़ूम चयन"
+ "Zoom selection": "ज़ूम चयन",
+ "Browsing order": "ब्राउज़िंग क्रम",
+ "Used by the previous and next arrows. In names, numbers count by value: 2 comes before 10.": "पिछले और अगले तीर इसका उपयोग करते हैं। नामों में संख्याएँ मान के अनुसार गिनी जाती हैं: 2, 10 से पहले आता है।",
+ "Browsing direction": "क्रम की दिशा",
+ "Ascending: A to Z, 1 to 10, oldest first": "आरोही: A से Z, 1 से 10, सबसे पुराना पहले"
 }

@@ -284,5 +284,9 @@
  "Zoom out": "缩小",
  "Zoom out (Ctrl+Minus)": "缩小 (Ctrl+减号)",
  "Zoom preference": "缩放偏好",
- "Zoom selection": "缩放选择"
+ "Zoom selection": "缩放选择",
+ "Browsing order": "浏览顺序",
+ "Used by the previous and next arrows. In names, numbers count by value: 2 comes before 10.": "用于“上一张”和“下一张”箭头。名称中的数字按数值大小排序：2 排在 10 之前。",
+ "Browsing direction": "排序方向",
+ "Ascending: A to Z, 1 to 10, oldest first": "升序：A 到 Z、1 到 10、最早的在前"
 }

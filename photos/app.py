@@ -43,6 +43,7 @@ class PhotosApp(Gtk.Application):
                 pass
         Gtk.Widget.set_default_direction(Gtk.TextDirection.RTL if i18n.is_rtl() else Gtk.TextDirection.LTR)
         theme.apply()
+        settings.connect(self._on_setting_changed)
         gs = Gtk.Settings.get_default()
         gs.connect("notify::gtk-theme-name", lambda *_: settings.get("theme") == "system" and theme.apply())
         gs.connect("notify::gtk-application-prefer-dark-theme", lambda *_: None)
@@ -85,15 +86,26 @@ class PhotosApp(Gtk.Application):
         g = self.open_gallery()
         g.show_settings()
 
-    def open_viewer(self, items, index, slideshow=False, edit=False):
+    def open_viewer(self, items, index, slideshow=False, edit=False, resort=True):
+        """Opens a viewer window. Unless `resort` is False the items are put in the viewer order chosen in
+        Settings (the Gallery's own sort does not decide where the arrows go) and the window keeps following
+        that setting while it is open. `resort=False` is for lists whose order is the point, such as files
+        named one by one on the command line."""
         from .viewer import ViewerWindow
-        win = ViewerWindow(self, items, index, slideshow=slideshow)
+        if resort:
+            items, index = library.order_for_viewer(items, index)
+        win = ViewerWindow(self, items, index, slideshow=slideshow, follow_order=resort)
         self.viewers.append(win)
         win.connect("destroy", lambda w: self.viewers.remove(w) if w in self.viewers else None)
         win.present()
         if edit:
             GLib.timeout_add(250, lambda: (win.open_editor(), False)[1])
         return win
+
+    def _on_setting_changed(self, key, _value):
+        if key in ("viewer_sort_by", "viewer_sort_desc"):
+            for v in list(self.viewers):
+                v.resort()
 
     def _open_paths(self, paths, opts):
         """Shows the requested image(s) as fast as possible.
@@ -132,7 +144,7 @@ class PhotosApp(Gtk.Application):
             except OSError:
                 continue
         if items:
-            self.open_viewer(items, 0, slideshow=slideshow)
+            self.open_viewer(items, 0, slideshow=slideshow, resort=False)
         else:
             self.open_gallery()
 
@@ -145,7 +157,7 @@ class PhotosApp(Gtk.Application):
         def work():
             try:
                 if os.path.isdir(path):
-                    items = library.sort_items(library.list_folder(path, recursive=False), "name", False)
+                    items = library.sort_for_viewer(library.list_folder(path, recursive=False))
                     idx = 0
                 else:
                     items, idx = library.list_siblings(path)

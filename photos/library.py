@@ -3,6 +3,7 @@
 """Library: folder scanning, lightweight metadata, sorting and filters."""
 import datetime
 import os
+import re
 import sqlite3
 import threading
 import unicodedata
@@ -185,11 +186,11 @@ def list_folder(folder, recursive=True, limit=200000):
 
 
 def list_siblings(path):
-    """(items, index): the media next to `path` sorted by name and the position of `path` in that list.
+    """(items, index): the media next to `path` in the viewer order (Settings) and the position of `path` in it.
 
     No image is opened and no file is stat'ed twice: the file is located by its path. A file that is not
     part of the listing (hidden, temporary name...) is returned alone."""
-    sibs = sort_items(list_folder(os.path.dirname(path), recursive=False), "name", False)
+    sibs = sort_for_viewer(list_folder(os.path.dirname(path), recursive=False))
     idx = next((k for k, i in enumerate(sibs) if i.path == path), -1)
     if idx < 0:
         return [Item(path, os.stat(path))], 0
@@ -432,12 +433,64 @@ def strip_accents(s):
     return "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn").lower()
 
 
+_NUMBERS = re.compile(r"(\d+)")
+
+
+def _natural_parts(text):
+    # re.split with a capturing group alternates text, number, text, number...: every even position is
+    # a string and every odd one a number, so two lists can always be compared element by element.
+    # Numbers are compared as (digit count, digits) without leading zeros, which equals comparing their values
+    # but never converts to int (a name with thousands of digits would raise in Python >= 3.11).
+    parts = _NUMBERS.split(strip_accents(text))
+    for i in range(1, len(parts), 2):
+        digits = parts[i].lstrip("0")
+        parts[i] = (len(digits), digits)
+    return parts
+
+
+def natural_key(name):
+    """Sort key for file names where numbers count by value, the way photos are numbered:
+    1, 2, ..., 9, 10, 11 instead of 1, 10, 11, ..., 19, 2, 20.
+
+    Case and accents are ignored. The name is split in stem and extension so that "foto.jpg" comes
+    before "foto (1).jpg" and "foto2.jpg"; callers add the plain name as the last tie-breaker (zero
+    padding such as "01" and "1" gives equal keys)."""
+    stem, ext = os.path.splitext(name)
+    return (_natural_parts(stem), _natural_parts(ext))
+
+
 def sort_items(items, sort_by, desc):
     if sort_by == "name":
-        key = lambda it: strip_accents(it.name)  # noqa: E731
+        key = lambda it: (natural_key(it.name), it.name)  # noqa: E731
     else:
-        key = lambda it: (it.date_for(sort_by), strip_accents(it.name))  # noqa: E731
+        key = lambda it: (it.date_for(sort_by), natural_key(it.name), it.name)  # noqa: E731
     return sorted(items, key=key, reverse=desc)
+
+
+# Orders offered for the previous/next arrows. "Date taken" is not among them on purpose: it needs every image
+# of the folder to be opened (EXIF), which is exactly what made network folders slow; created and modified come
+# from the directory listing.
+VIEWER_SORTS = ("name", "created", "modified")
+
+
+def viewer_order():
+    """(sort_by, descending) for the viewer, from the settings; anything invalid falls back to name, ascending."""
+    by = settings.get("viewer_sort_by")
+    if by not in VIEWER_SORTS:
+        by = "name"
+    return by, settings.get("viewer_sort_desc") is True
+
+
+def sort_for_viewer(items):
+    by, desc = viewer_order()
+    return sort_items(items, by, desc)
+
+
+def order_for_viewer(items, index):
+    """(ordered_items, new_index): the items in the viewer order, still pointing at the same photo."""
+    current = items[index]
+    ordered = sort_for_viewer(items)
+    return ordered, next(k for k, i in enumerate(ordered) if i is current)
 
 
 def filter_items(items, media="all", query=""):

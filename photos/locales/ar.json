@@ -284,5 +284,9 @@
  "Zoom out": "تصغير",
  "Zoom out (Ctrl+Minus)": "تصغير (Ctrl+ناقص)",
  "Zoom preference": "تفضيل التكبير",
- "Zoom selection": "اختيار التكبير"
+ "Zoom selection": "اختيار التكبير",
+ "Browsing order": "ترتيب التصفح",
+ "Used by the previous and next arrows. In names, numbers count by value: 2 comes before 10.": "يستخدمه السهمان السابق والتالي. في الأسماء تُحتسب الأرقام بقيمتها: 2 يأتي قبل 10.",
+ "Browsing direction": "اتجاه الترتيب",
+ "Ascending: A to Z, 1 to 10, oldest first": "تصاعدي: من A إلى Z، ومن 1 إلى 10، الأقدم أولاً"
 }

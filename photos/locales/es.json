@@ -284,5 +284,9 @@
  "Zoom out": "Alejar",
  "Zoom out (Ctrl+Minus)": "Alejar (Ctrl+Menos)",
  "Zoom preference": "Preferencia de zoom",
- "Zoom selection": "Selección de zoom"
+ "Zoom selection": "Selección de zoom",
+ "Browsing order": "Orden de navegación",
+ "Used by the previous and next arrows. In names, numbers count by value: 2 comes before 10.": "La usan las flechas anterior y siguiente. En los nombres, los números cuentan por su valor: 2 va antes que 10.",
+ "Browsing direction": "Sentido del orden",
+ "Ascending: A to Z, 1 to 10, oldest first": "Ascendente: de la A a la Z, del 1 al 10, las más antiguas primero"
 }
