@@ -289,36 +289,22 @@ def burn_strokes(im, strokes, crop):
     """Burns the annotations (normalised on the whole geometric image) onto the ALREADY cropped image."""
     if not strokes:
         return im
+    from . import markup
     cw, ch = im.size
     x0, y0, x1, y1 = crop
     fw, fh = cw / max(1e-6, (x1 - x0)), ch / max(1e-6, (y1 - y0))
     ref = max(fw, fh)
-    base = im.convert("RGBA")
-    result = base
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, cw, ch)
+    cr = cairo.Context(surf)
     for st in strokes:
-        surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, cw, ch)
-        cr = cairo.Context(surf)
         pts = [((u - x0) * fw, (v - y0) * fh) for u, v in st["pts"]]
-        path_pts = [(p[0] / cw, p[1] / ch) for p in pts]
-        stroke_path(cr, path_pts, cw, ch)
-        lw = stroke_width_px(st, ref)
-        cr.set_line_width(lw)
-        cr.set_line_join(cairo.LINE_JOIN_ROUND)
-        cr.set_line_cap(cairo.LINE_CAP_BUTT if st["kind"] == "highlighter" else cairo.LINE_CAP_ROUND)
-        cr.set_source_rgba(1, 1, 1, 1)
-        cr.stroke()
-        surf.flush()
-        mask = Image.frombuffer("RGBA", (cw, ch), bytes(surf.get_data()), "raw", "BGRa", surf.get_stride(), 1).getchannel("A")
-        r, g, b = [int(round(c * 255)) for c in _hex(st["color"])]
-        solid = Image.new("RGBA", (cw, ch), (r, g, b, 255))
-        if st["kind"] == "highlighter":
-            mult = ImageChops.multiply(result.convert("RGB"), solid.convert("RGB")).convert("RGBA")
-            result = Image.composite(mult, result, mask)
-        else:
-            result = Image.composite(solid, result, mask)
+        markup.paint_stroke(cr, st["kind"], st["color"], pts, markup.stroke_width(st, ref), st.get("arrows", 0))
+    surf.flush()
+    layer = Image.frombuffer("RGBA", (cw, ch), bytes(surf.get_data()), "raw", "BGRa", surf.get_stride(), 1)
+    out = Image.alpha_composite(im.convert("RGBA"), layer)
     if im.mode != "RGBA":
-        return result.convert(im.mode if im.mode in ("RGB", "L") else "RGB")
-    return result
+        return out.convert(im.mode if im.mode in ("RGB", "L") else "RGB")
+    return out
 
 
 def render_final(base, state):

@@ -49,9 +49,12 @@ DEFAULTS = {
     "main_maximized": False,
     "slideshow_interval": 5,
     "slideshow_shuffle": False,
-    "pen_color": "#e61b1b",
-    "pen_size": 3,
-    "highlighter_color": "#ffd02f",
+    # markup tools: colour, level (1-6) and line mode (index in markup.modes_for) of each one
+    "markup_tools": {
+        "pen": {"color": "#0078d7", "size": 3, "mode": 0},
+        "pen2": {"color": "#1f1f1f", "size": 3, "mode": 0},
+        "highlighter": {"color": "#fed430", "size": 3, "mode": 0},
+    },
 }
 
 _lock = threading.Lock()

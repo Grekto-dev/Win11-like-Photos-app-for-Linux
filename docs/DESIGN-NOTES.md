@@ -37,8 +37,33 @@ icons, fonts or other assets were copied; everything in this repository is origi
 - Tabs: Crop, Adjust, Filters, Markup (the AI-based Erase and Background tabs are intentionally not re-created).
 - Crop: handles, aspect presets, ±45° rotation ruler, rotate/flip. Adjust: Light (brightness, exposure, contrast,
   highlights, shadows, vignette) and Color (saturation, warmth, tint, sharpness). Filters: 14 presets + auto enhance.
-  Markup: pen, pencil, highlighter (multiply blending), eraser (removes the whole stroke), clear all.
+  Markup: two pens, highlighter, eraser (removes the whole stroke), clear all (details below).
 - Save options: save as copy, save, copy to clipboard.
+
+### Markup tools (measured on the original)
+Everything below was measured on the Windows Photos app: strokes drawn with real mouse input, then read back from screenshots
+and from the clipboard image.
+
+- **Width is fixed on the screen**, not in the picture. Pen levels 1-6 are 1, 2, 4, 6, 8, 12 px; highlighter levels are
+  8, 12, 16, 24, 28, 32 px. A level-6 pen is 9.25 px wide in the saved picture at 128 % zoom and 20.0 px at 61 %. The width
+  is converted when the stroke is created and stored as `w` (image pixels).
+- Default level 3 for all tools. The slider has six stops and shows the level number.
+- **Pens**: opaque, round ends. The first is blue (`#0078d7`), the second black (`#1f1f1f`, not pure black); they behave the same.
+- **Highlighter**: the colour at 50 % opacity (plain alpha, not multiply), flat ends, no arrows. One stroke crossing itself does
+  not get darker; two strokes add up.
+- **Line modes** (pens): freehand / straight x no arrow / arrow at the end / arrows at both ends. Highlighter: freehand, straight.
+  Shift while pressing makes a straight line in any mode.
+- **Arrow head**: two arms at 45 degrees, 3.8 x the stroke width long, same width as the line, round joins.
+- **Palette** (two rows of eight): `#fed430 #fbae17 #f36323 #e3182d #5b318d #914bb8 #cf1278 #c10051` /
+  `#3eccfd #0078d7 #0051ba #7ec400 #00b44b #ebebeb #b6b6b6 #1f1f1f`; each swatch has its name as a tooltip, the selected one a
+  white ring, a grey halo under the pointer.
+- **Flyout**: wedge preview (thin on the left, as thick as the level on the right: pen 2, 4, 7, 10, 12, 14 px; round end for pens,
+  flat for the highlighter), slider + number, palette, a divider, then the mode icons (the selected one on a tile). Choosing a
+  colour or a mode keeps it open; Esc closes it.
+- **Tool icon**: underline in the ink colour, a blue chevron on the selected tool, a small arrow when the mode has arrow heads.
+  Tooltip: `Pen: Blue, Thickness: 3, Freehand line without arrow` (+ "Select again to change the ink properties." on the selected tool).
+- Each tool remembers colour, level and mode between sessions. The eraser has no options; the pointer stays the normal arrow.
+- Strokes are not accepted on the strip just above the floating bar (an invisible overlay in the original); not re-created.
 
 ## Settings
 Theme, language (added in this project), tile attributes (duplicate badge), delete confirmation, mouse wheel

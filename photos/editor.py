@@ -15,7 +15,7 @@ from gi.repository import Gdk, GLib, GObject, GdkPixbuf, Gtk  # noqa: E402
 import cairo  # noqa: E402
 from PIL import Image
 
-from . import actions, dialogs, icons, imgops, settings, theme, ui
+from . import actions, dialogs, icons, imgops, markup, settings, theme, ui
 from .i18n import _, ngettext  # noqa: F401
 from .canvas import next_zoom
 from .imgops import EditState
@@ -257,34 +257,12 @@ class EditCanvas(Gtk.DrawingArea):
         cr.clip()
         full_w, full_h = self.ed.full_size()
         ref = max(full_w, full_h)
-        disp = s * self.pw / max(1, full_w)
+        disp = s * self.pw / max(1, full_w)           # widget pixels per pixel of the full-size image
         strokes = list(st.strokes) + ([self.cur] if self.cur else [])
         for stroke in strokes:
             pts = [(ox + u * self.pw * s, oy + v * self.ph * s) for u, v in stroke["pts"]]
-            cr.new_path()
-            if len(pts) == 1:
-                pts = [pts[0], (pts[0][0] + 0.01, pts[0][1])]
-            cr.move_to(*pts[0])
-            if len(pts) == 2:
-                cr.line_to(*pts[1])
-            else:
-                for i in range(1, len(pts) - 1):
-                    cr.curve_to(pts[i][0], pts[i][1], pts[i][0], pts[i][1],
-                                (pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2)
-                cr.line_to(*pts[-1])
-            c = imgops._hex(stroke["color"])
-            lw = imgops.stroke_width_px(stroke, ref) * disp
-            if stroke["kind"] == "highlighter":
-                cr.set_operator(cairo.OPERATOR_MULTIPLY)
-                cr.set_line_cap(cairo.LINE_CAP_BUTT)
-            else:
-                cr.set_operator(cairo.OPERATOR_OVER)
-                cr.set_line_cap(cairo.LINE_CAP_ROUND)
-            cr.set_source_rgb(*c)
-            cr.set_line_join(cairo.LINE_JOIN_ROUND)
-            cr.set_line_width(max(1.0, lw))
-            cr.stroke()
-        cr.set_operator(cairo.OPERATOR_OVER)
+            markup.paint_stroke(cr, stroke["kind"], stroke["color"], pts, markup.stroke_width(stroke, ref) * disp,
+                                stroke.get("arrows", 0))
         cr.restore()
 
     def _draw_crop(self, cr, W, H):
@@ -385,14 +363,21 @@ class EditCanvas(Gtk.DrawingArea):
                 self.queue_draw()
                 return True
         elif tab == "markup":
+            if self.pb is None:
+                return True                      # the picture is not loaded yet: its zoom (and so the width) is unknown
             tool = self.ed.tool
             if tool == "eraser":
                 self.drag = ("erase",)
                 self.erased = self._erase_at(ev.x, ev.y)
                 return True
             u, v = self.to_norm(ev.x, ev.y)
-            kind, color, size = self.ed.tool_style()
-            self.cur = {"kind": kind, "color": color, "size": size, "pts": [(u, v)]}
+            cfg = self.ed.tool_cfg[tool]
+            straight, arrows = markup.modes_for(tool)[cfg["mode"]]
+            if ev.state & Gdk.ModifierType.SHIFT_MASK:
+                straight = True              # Shift while pressing draws a straight line in any mode
+            self.cur = {"kind": markup.kind_of(tool), "color": cfg["color"],
+                        "w": markup.image_width(tool, cfg["size"], self.percent()),
+                        "pts": [(u, v)], "arrows": arrows, "straight": straight}
             self.drag = ("draw",)
             self.queue_draw()
             return True
@@ -418,7 +403,7 @@ class EditCanvas(Gtk.DrawingArea):
             if self.erased:
                 self.emit("gesture-done")
             self.erased = False
-        self._set_cursor(None if self.ed.tab != "markup" else "crosshair")
+        self._set_cursor(None)                  # also ends the "grabbing" pan cursor of the Adjust and Filters tabs
         self.queue_draw()
         return True
 
@@ -429,7 +414,7 @@ class EditCanvas(Gtk.DrawingArea):
                 hit = self._hit_crop(ev.x, ev.y)
                 self._set_cursor(self.CURSORS.get(hit))
             elif self.ed.tab == "markup":
-                self._set_cursor("crosshair")
+                self._set_cursor(None)
             return False
         if d[0] == "pan":
             self.pan = [d[3] + ev.x - d[1], d[4] + ev.y - d[2]]
@@ -439,7 +424,10 @@ class EditCanvas(Gtk.DrawingArea):
             u, v = self.to_norm(ev.x, ev.y)
             lu, lv = self.cur["pts"][-1]
             if abs(u - lu) * self.pw * self.scale() + abs(v - lv) * self.ph * self.scale() > 1.5:
-                self.cur["pts"].append((u, v))
+                if self.cur["straight"]:
+                    self.cur["pts"] = self.cur["pts"][:1] + [(u, v)]      # only the two ends matter
+                else:
+                    self.cur["pts"].append((u, v))
                 self.queue_draw()
         elif d[0] == "erase":
             if self._erase_at(ev.x, ev.y):
@@ -458,11 +446,13 @@ class EditCanvas(Gtk.DrawingArea):
         st = self.ed.state
         ox, oy = self.origin()
         s = self.scale()
+        disp = self.percent()                     # widget pixels per pixel of the full-size image
         hit = None
         for i, stroke in enumerate(st.strokes):
             pts = [(ox + u * self.pw * s, oy + v * self.ph * s) for u, v in stroke["pts"]]
+            reach = markup.hit_radius(stroke, disp)
             for a, b in zip(pts, pts[1:] or pts):
-                if _seg_dist(x, y, a, b) < 12:
+                if _seg_dist(x, y, a, b) < reach:
                     hit = i
                     break
             if hit is not None:
@@ -564,6 +554,99 @@ def _seg_dist(px, py, a, b):
 
 # ───────────────────────── editor ─────────────────────────
 
+# ───────────────────────── markup tool widgets ─────────────────────────
+
+def _rgb(hex_color):
+    return tuple(int(hex_color[i:i + 2], 16) / 255.0 for i in (1, 3, 5))
+
+
+class ToolGlyph(Gtk.DrawingArea):
+    """Icon of a markup tool: the drawing, an underline in the ink colour, a chevron on the selected tool and a
+    small arrow when the line mode has arrow heads."""
+
+    def __init__(self, icon):
+        super().__init__()
+        self.icon = icon
+        self.color = "#000000"
+        self.selected = False
+        self.arrows = 0
+        self.set_size_request(36, 34)
+        self.connect("draw", self._draw)
+
+    def configure(self, color, selected, arrows):
+        self.color, self.selected, self.arrows = color, selected, arrows
+        self.queue_draw()
+
+    def _draw(self, w, cr):
+        W, H = w.get_allocated_width(), w.get_allocated_height()
+        cr.translate(0, max(0, (H - 34) / 2))                     # the drawing below is laid out in 34 px
+        Gdk.cairo_set_source_pixbuf(cr, icons.pixbuf(self.icon, 22, theme.color("fg")), (W - 22) / 2, 7)
+        cr.paint()
+        cr.set_line_cap(cairo.LINE_CAP_ROUND)
+        cr.set_line_join(cairo.LINE_JOIN_ROUND)
+        cr.set_source_rgb(*_rgb(self.color))
+        cr.set_line_width(3)
+        cr.move_to((W - 20) / 2 + 1.5, 31.5)
+        cr.line_to((W + 20) / 2 - 1.5, 31.5)
+        cr.stroke()
+        cr.set_line_width(1.4)
+        if self.selected:
+            theme.set_source(cr, "accent")
+            cr.move_to(W / 2 - 4, 5)
+            cr.line_to(W / 2, 1.8)
+            cr.line_to(W / 2 + 4, 5)
+            cr.stroke()
+        if self.arrows:
+            theme.set_source(cr, "muted")
+            x = W - 6
+            cr.move_to(x, 11)
+            cr.line_to(x, 3)
+            cr.move_to(x - 3, 6)
+            cr.line_to(x, 3)
+            cr.line_to(x + 3, 6)
+            cr.stroke()
+        return False
+
+
+class WedgePreview(Gtk.DrawingArea):
+    """Preview line of the flyout: thin on the left, as thick as the chosen level on the right."""
+
+    def __init__(self, editor, tool):
+        super().__init__()
+        self.ed = editor
+        self.tool = tool
+        self.set_size_request(300, 26)
+        self.connect("draw", self._draw)
+
+    def tip_width(self):
+        return markup.PREVIEW_TIP[markup.kind_of(self.tool)][self.ed.tool_cfg[self.tool]["size"] - 1]
+
+    def _draw(self, w, cr):
+        W, H = w.get_allocated_width(), w.get_allocated_height()
+        r, g, b = _rgb(self.ed.tool_cfg[self.tool]["color"])
+        tip = self.tip_width()
+        thin = max(1.0, tip * 0.18)
+        x0, x1, cy = 4.0, W - 4.0, H / 2.0
+        round_end = self.tool != "highlighter"
+        end = x1 - tip / 2 if round_end else x1
+        cr.new_path()
+        cr.move_to(x0, cy - thin / 2)
+        cr.line_to(end, cy - tip / 2)
+        if round_end:
+            cr.arc(end, cy, tip / 2, -math.pi / 2, math.pi / 2)
+        else:
+            cr.line_to(end, cy + tip / 2)
+        cr.line_to(x0, cy + thin / 2)
+        cr.close_path()
+        fade = cairo.LinearGradient(x0, 0, x1, 0)
+        fade.add_color_stop_rgba(0, r, g, b, 0.3)
+        fade.add_color_stop_rgba(0.18, r, g, b, 1)
+        fade.add_color_stop_rgba(1, r, g, b, 1)
+        cr.set_source(fade)
+        cr.fill()
+        return False
+
+
 class EditorView(Gtk.Box):
     def __init__(self, window, item):
         super().__init__(orientation=Gtk.Orientation.VERTICAL)
@@ -586,11 +669,8 @@ class EditorView(Gtk.Box):
         self.busy = False
         self.again = False
         self.render_timer = 0
-        self.tool_cfg = {
-            "pen": {"color": settings.get("pen_color"), "size": 3},
-            "pencil": {"color": "#ffffff", "size": 2},
-            "highlighter": {"color": settings.get("highlighter_color"), "size": 3},
-        }
+        self.tool_cfg = {t: markup.load_cfg(t) for t in markup.TOOLS}
+        self.flyout_parts = None
         self.updating = False
         self._build()
         self.show_all()
@@ -727,7 +807,7 @@ class EditorView(Gtk.Box):
         self.bottom.set_visible_child_name({"crop": "crop", "markup": "markup"}.get(name, "none"))
         win = self.canvas.get_window()
         if win:
-            win.set_cursor(Gdk.Cursor.new_from_name(self.get_display(), "crosshair") if name == "markup" else None)
+            win.set_cursor(None)              # the pointer stays the normal arrow while marking up
         self.canvas.fit()
         self.canvas.queue_draw()
         self._sync_buttons()
@@ -1138,115 +1218,193 @@ class EditorView(Gtk.Box):
     def _build_markup_bar(self):
         wrap = Gtk.Box()
         wrap.set_halign(Gtk.Align.CENTER)
+        wrap.set_valign(Gtk.Align.END)        # the bottom area is as tall as the tallest tab: keep the bar compact
         wrap.set_margin_bottom(14)
         bar = Gtk.Box(spacing=6)
         bar.get_style_context().add_class("editor-panel")
         bar.set_border_width(6)
         self.tool_btns = {}
-        for name, icon, tip in (("pen", "pen", _("Pen")), ("pencil", "pencil", _("Pencil")),
-                                ("highlighter", "highlighter", _("Highlighter")), ("eraser", "eraser", _("Eraser"))):
-            b = ui.icon_button(icon, tip, classes=["flat-icon"], size=22)
+        for name, icon in (("pen", "pen"), ("pen2", "pen"), ("highlighter", "highlighter")):
+            b = Gtk.Button()
+            b.get_style_context().add_class("fbtn")
+            b.get_style_context().add_class("flat-icon")
+            b.set_can_focus(False)
+            b.glyph = ToolGlyph(icon)
+            b.add(b.glyph)
             b.set_size_request(48, 40)
             b.connect("clicked", lambda _b, n=name: self._pick_tool(n))
             bar.pack_start(b, False, False, 0)
             self.tool_btns[name] = b
+        eraser = ui.icon_button("eraser", _("Remove markup"), classes=["flat-icon"], size=22)
+        eraser.set_size_request(48, 40)
+        eraser.connect("clicked", lambda _b: self._pick_tool("eraser"))
+        bar.pack_start(eraser, False, False, 0)
+        self.tool_btns["eraser"] = eraser
         self.clear_btn = ui.icon_button("clear-all", _("Clear all markup"), classes=["flat-icon"], size=22,
                                         on_click=self.clear_strokes)
         self.clear_btn.set_size_request(48, 40)
         bar.pack_start(self.clear_btn, False, False, 0)
         wrap.pack_start(bar, False, False, 0)
         self.bottom.add_named(wrap, "markup")
-        self._sync_tools()
+        self._refresh_tools()
 
-    def tool_style(self):
-        cfg = self.tool_cfg.get(self.tool)
-        return self.tool, cfg["color"], cfg["size"]
+    # ── remembered choices of each tool ──
+    def reload_tool_cfg(self):
+        self.tool_cfg = {t: markup.load_cfg(t) for t in markup.TOOLS}
+        self._refresh_tools()
+
+    def _store_tool(self, tool):
+        markup.save_cfg(tool, self.tool_cfg[tool])
+        self._refresh_tools()
+
+    def set_tool_color(self, tool, color):
+        self.tool_cfg[tool]["color"] = color
+        self._store_tool(tool)
+
+    def set_tool_size(self, tool, level):
+        self.tool_cfg[tool]["size"] = max(1, min(markup.LEVELS, int(level)))
+        self._store_tool(tool)
+
+    def set_tool_mode(self, tool, mode):
+        self.tool_cfg[tool]["mode"] = mode
+        self._store_tool(tool)
 
     def _pick_tool(self, name):
         if name == self.tool and name != "eraser":
             self._tool_flyout(name)
             return
         self.tool = name
-        self._sync_tools()
+        self._refresh_tools()
 
-    def _sync_tools(self):
+    def _refresh_tools(self):
         for n, b in self.tool_btns.items():
+            selected = n == self.tool
             ctx = b.get_style_context()
-            (ctx.add_class if n == self.tool else ctx.remove_class)("sel-on")
+            (ctx.add_class if selected else ctx.remove_class)("sel-on")
+            if n in self.tool_cfg:
+                cfg = self.tool_cfg[n]
+                b.glyph.configure(cfg["color"], selected, markup.modes_for(n)[cfg["mode"]][1])
+                b.set_tooltip_text(markup.tool_tooltip(n, cfg, selected))
 
     def _tool_flyout(self, name):
         cfg = self.tool_cfg[name]
-        pop = ui.FlyoutMenu(self.tool_btns[name], Gtk.PositionType.TOP, 300)
+        pop = ui.FlyoutMenu(self.tool_btns[name], Gtk.PositionType.TOP, 340)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
-        box.set_border_width(10)
-        preview = Gtk.DrawingArea()
-        preview.set_size_request(280, 22)
-
-        def draw_prev(w, cr):
-            c = imgops._hex(cfg["color"])
-            cr.set_source_rgb(*c)
-            cr.set_line_cap(cairo.LINE_CAP_BUTT if name == "highlighter" else cairo.LINE_CAP_ROUND)
-            cr.set_line_width(cfg["size"] * (4 if name == "highlighter" else 1.3) + 1)
-            cr.move_to(12, 11)
-            cr.line_to(268, 11)
-            cr.stroke()
-            return False
-        preview.connect("draw", draw_prev)
+        box.set_border_width(12)
+        preview = WedgePreview(self, name)
         box.pack_start(preview, False, False, 0)
+
+        # size: six levels
         srow = Gtk.Box(spacing=10)
-        sc = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 1, 10, 1)
+        sc = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 1, markup.LEVELS, 1)
+        sc.set_digits(0)
         sc.set_draw_value(False)
         sc.set_value(cfg["size"])
         sc.get_style_context().add_class("fscale")
         sc.get_style_context().add_class("on-card")
+        sc.get_style_context().add_class("ink-scale")
         sv = ui.label(str(cfg["size"]))
+        sv.set_width_chars(2)
 
         def size_changed(s):
-            cfg["size"] = int(s.get_value())
-            sv.set_text(str(cfg["size"]))
+            level = int(round(s.get_value()))
+            if level != s.get_value():
+                s.set_value(level)                   # stops only on whole levels; this runs the handler again
+                return
+            self.set_tool_size(name, level)
+            sv.set_text(str(level))
             preview.queue_draw()
         sc.connect("value-changed", size_changed)
         srow.pack_start(sc, True, True, 0)
         srow.pack_start(sv, False, False, 0)
         box.pack_start(srow, False, False, 0)
-        grid = Gtk.Grid(column_spacing=6, row_spacing=6)
+
+        # colours: two rows of eight
+        grid = Gtk.Grid(column_spacing=4, row_spacing=4)
         grid.set_halign(Gtk.Align.CENTER)
-        for i, col in enumerate(imgops.PEN_COLORS):
+        swatches = []
+
+        def sync_swatches():
+            for (col, _n), sw in zip(markup.PALETTE, swatches):
+                ctx = sw.get_style_context()
+                (ctx.add_class if col == self.tool_cfg[name]["color"] else ctx.remove_class)("sw-on")
+                sw.get_child().queue_draw()
+
+        for i, (col, cname) in enumerate(markup.PALETTE):
             sw = Gtk.Button()
             sw.set_can_focus(False)
             sw.get_style_context().add_class("fbtn")
+            sw.get_style_context().add_class("flat-icon")
+            sw.set_tooltip_text(_(cname))
             area = Gtk.DrawingArea()
-            area.set_size_request(24, 24)
-            area.connect("draw", self._draw_swatch, col, cfg)
+            area.set_size_request(30, 30)
+            area.connect("draw", self._draw_swatch, col, sw)
             sw.add(area)
-            sw.set_size_request(32, 32)
+            sw.set_size_request(34, 34)
+            for ev_name in ("enter-notify-event", "leave-notify-event"):
+                sw.connect(ev_name, lambda _w, _e, a=area: a.queue_draw() or False)
 
             def pick(_b, c=col):
-                cfg["color"] = c
-                if name == "pen":
-                    settings.set("pen_color", c)
-                elif name == "highlighter":
-                    settings.set("highlighter_color", c)
+                self.set_tool_color(name, c)
+                sync_swatches()
                 preview.queue_draw()
-                for ch in grid.get_children():
-                    ch.queue_draw()
             sw.connect("clicked", pick)
             grid.attach(sw, i % 8, i // 8, 1, 1)
+            swatches.append(sw)
         box.pack_start(grid, False, False, 0)
+        sync_swatches()
+
+        sep = Gtk.Box()
+        sep.get_style_context().add_class("msep")
+        sep.set_size_request(-1, 1)
+        box.pack_start(sep, False, False, 0)
+
+        # line modes: freehand or straight, with or without arrow heads
+        mode_icons = (["line-free", "line-free-arrow", "line-free-arrows", "line-straight", "line-straight-arrow",
+                       "line-straight-arrows"] if name != "highlighter" else ["line-free", "line-straight"])
+        mrow = Gtk.Box(spacing=4)
+        mrow.set_halign(Gtk.Align.CENTER)
+        modes = []
+
+        def sync_modes():
+            for i, mb in enumerate(modes):
+                ctx = mb.get_style_context()
+                (ctx.add_class if i == self.tool_cfg[name]["mode"] else ctx.remove_class)("sel-on")
+
+        for i, icon in enumerate(mode_icons):
+            mb = ui.icon_button(icon, markup.mode_tooltip(name, i), classes=["flat-icon"], size=22)
+            mb.set_size_request(40, 36)
+
+            def choose(_b, idx=i):
+                self.set_tool_mode(name, idx)
+                sync_modes()
+            mb.connect("clicked", choose)
+            mrow.pack_start(mb, False, False, 0)
+            modes.append(mb)
+        box.pack_start(mrow, False, False, 0)
+        sync_modes()
+
         pop.add_widget(box)
+        pop.connect("closed", lambda p: GLib.idle_add(p.destroy))      # a popover stays parented to its button otherwise
+        self.flyout_parts = {"popover": pop, "scale": sc, "value_label": sv, "swatches": swatches, "modes": modes,
+                             "preview": preview}
         pop.popup()
 
-    def _draw_swatch(self, w, cr, col, cfg):
-        cr.arc(12, 12, 10, 0, 2 * math.pi)
-        cr.set_source_rgb(*imgops._hex(col))
+    def _draw_swatch(self, area, cr, col, button):
+        cx = cy = area.get_allocated_width() / 2
+        selected = button.get_style_context().has_class("sw-on")
+        if not selected and button.get_state_flags() & Gtk.StateFlags.PRELIGHT:
+            cr.arc(cx, cy, 13.5, 0, 2 * math.pi)                  # halo under the pointer
+            theme.set_source(cr, "fg", 0.14)
+            cr.fill()
+        cr.arc(cx, cy, 10, 0, 2 * math.pi)
+        cr.set_source_rgb(*_rgb(col))
         cr.fill_preserve()
-        if col.lower() in ("#000000",):
-            theme.set_source(cr, "faint")
-            cr.set_line_width(1)
-            cr.stroke_preserve()
-        cr.new_path()
-        if cfg["color"].lower() == col.lower():
-            cr.arc(12, 12, 11.5, 0, 2 * math.pi)
+        theme.set_source(cr, "faint")
+        cr.set_line_width(1)
+        cr.stroke()
+        if selected:
+            cr.arc(cx, cy, 13, 0, 2 * math.pi)
             theme.set_source(cr, "fg")
             cr.set_line_width(2)
             cr.stroke()

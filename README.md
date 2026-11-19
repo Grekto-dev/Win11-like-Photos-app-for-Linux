@@ -20,7 +20,7 @@ License: [Apache-2.0](LICENSE).
   save as, resize (px/%, quality, file type), set as desktop background, "open with…".
 - **Slideshow** — full screen, cross-fade, pause, shuffle.
 - **Editor** — Crop (handles, aspect presets, ±45° straighten, rotate/flip), Adjust (10 controls), Filters (14 presets,
-  auto enhance, intensity), Markup (pen, pencil, highlighter, eraser), undo/redo/reset, save / save as copy / copy.
+  auto enhance, intensity), Markup (two pens, highlighter, eraser; see below), undo/redo/reset, save / save as copy / copy.
 - **Settings** — theme (light / dark / system), **language**, delete confirmation, mouse-wheel behaviour,
   zoom preference, **browsing order**, slideshow duration, gallery folders.
 - **Languages** — English (default), Português (Brasil), Español, Français, 简体中文, हिन्दी and العربية
@@ -83,6 +83,18 @@ This also covers zero-padded names (`IMG_0009` before `IMG_0010`), names with se
 Gallery's *Name* sort uses the same rule. "Date taken" is not offered for the arrows: it would require opening every image
 of the folder, which is slow on network shares. Files named one by one on the command line keep the order they were typed.
 
+### Markup tools
+
+Click a tool to select it, click it again to open its options:
+
+- **Size**: six levels (default 3). The width is fixed on the screen, as in the original: drawing while zoomed out gives a
+  thicker line in the saved picture. Pens: 1, 2, 4, 6, 8 and 12 px; highlighter: 8, 12, 16, 24, 28 and 32 px.
+- **Colour**: the 16-colour palette (names appear as tooltips).
+- **Line mode**: freehand or straight, each without an arrow, with one at the end or with both; the highlighter has freehand and
+  straight. Hold **Shift** while dragging to draw a straight line in any mode.
+- The two pens (blue and black by default) and the highlighter (50 % opacity, flat ends) each remember their colour, size and mode.
+  The eraser removes the whole stroke it touches; *Clear all markup* removes everything.
+
 ### Old hardware and network folders
 
 - Opening an image shows the viewer at once; the rest of its folder is listed in the background and added to the
@@ -107,6 +119,7 @@ python3 tests/test_i18n.py      # catalogs, plurals, dates, persistence
 python3 tests/test_slow_storage.py     # metadata cache, parallel scan, no UI-thread disk access
 python3 tests/test_viewer_siblings.py  # instant open + background folder listing (needs a display)
 python3 tests/test_viewer_order.py     # natural name order, browsing order setting (needs a display)
+python3 tests/test_markup.py           # markup tools: widths, colours, arrows, flyout (needs a display)
 scripts/build-deb.sh            # builds dist/photos_<version>_all.deb
 ```
 

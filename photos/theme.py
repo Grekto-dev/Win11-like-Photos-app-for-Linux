@@ -212,6 +212,8 @@ scale.fscale slider:hover { background-color: %(accent_hover)s; }
 scale.fscale.on-bg slider { border-color: %(bg)s; }
 scale.fscale.on-card slider { border-color: %(content)s; }
 scale.fscale.disabled trough { opacity: 0.4; }
+scale.ink-scale, scale.ink-scale:focus, scale.ink-scale trough, scale.ink-scale:focus trough, scale.ink-scale:focus slider { outline-style: none; outline-width: 0; }
+scale.ink-scale:focus slider { box-shadow: 0 0 0 1px %(accent)s, 0 0 0 5px %(hover)s; }
 
 switch.fswitch { background-color: transparent; background-image: none; border: 1px solid %(faint)s; border-radius: 10px; min-height: 20px; min-width: 40px; box-shadow: none; color: %(fg)s; }
 switch.fswitch slider { background-color: %(faint)s; background-image: none; border: none; border-radius: 7px; min-width: 14px; min-height: 14px; margin: 2px; box-shadow: none; }
