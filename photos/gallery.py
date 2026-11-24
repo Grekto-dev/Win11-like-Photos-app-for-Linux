@@ -121,9 +121,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def _build(self):
         hb = Gtk.HeaderBar()
         hb.get_style_context().add_class("photos-hb")
-        hb.set_show_close_button(True)
-        hb.set_decoration_layout(":minimize,maximize,close")
+        hb.set_show_close_button(False)            # the app draws its own window buttons (ui.WindowButtons)
         self.hb = hb
+        self.window_buttons = ui.WindowButtons(self)
+        hb.pack_end(self.window_buttons)           # first pack_end = right-most
         title = Gtk.Box(spacing=10)
         title.set_margin_start(8)
         title.pack_start(icons.Icon("photo", 20, "accent"), False, False, 0)

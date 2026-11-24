@@ -312,5 +312,8 @@
  "Straight line with arrows at both ends": "दोनों सिरों पर तीर वाली सीधी रेखा",
  "Freehand line": "फ़्रीहैंड रेखा",
  "To draw a straight line quickly, hold Shift while you click and drag with the left mouse button.": "सीधी रेखा जल्दी खींचने के लिए, माउस के बाएँ बटन से क्लिक करके खींचते समय Shift कुंजी दबाए रखें।",
- "Remove markup": "चिह्न हटाएँ"
+ "Remove markup": "चिह्न हटाएँ",
+ "Minimize": "छोटा करें",
+ "Maximize": "बड़ा करें",
+ "Restore": "पुनर्स्थापित करें"
 }

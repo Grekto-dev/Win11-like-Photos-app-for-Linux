@@ -67,9 +67,10 @@ class ViewerWindow(Gtk.ApplicationWindow):
     def _build(self):
         hb = Gtk.HeaderBar()
         hb.get_style_context().add_class("photos-hb")
-        hb.set_show_close_button(True)
-        hb.set_decoration_layout(":minimize,maximize,close")
+        hb.set_show_close_button(False)            # the app draws its own window buttons (ui.WindowButtons)
         self.hb = hb
+        self.window_buttons = ui.WindowButtons(self)
+        hb.pack_end(self.window_buttons)           # first pack_end = right-most
         # left side (viewer)
         self.tools = Gtk.Box(spacing=2)
         self.btn_edit = ui.icon_button("edit", _("Edit image (Ctrl+E)"), label=_("Edit"), classes=["subtle"], on_click=self.open_editor)

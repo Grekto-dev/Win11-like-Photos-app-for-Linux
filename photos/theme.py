@@ -116,9 +116,13 @@ window.photos, .photos-window, .photos-root { background-color: %(bg)s; color: %
 
 headerbar.photos-hb, .photos-hb { background: %(bg)s; background-image: none; border: none; box-shadow: none; min-height: 48px; padding: 0 4px; color: %(fg)s; }
 headerbar.photos-hb:backdrop { background: %(bg)s; }
-headerbar.photos-hb button.titlebutton { color: %(fg)s; background: transparent; background-image: none; border: none; box-shadow: none; border-radius: 0; min-width: 46px; min-height: 48px; padding: 0; margin: 0; -gtk-icon-shadow: none; }
-headerbar.photos-hb button.titlebutton:hover { background-color: %(hover)s; }
-headerbar.photos-hb button.titlebutton.close:hover { background-color: #c42b1c; color: #ffffff; }
+headerbar.photos-hb { padding: 0 0 0 4px; }
+headerbar.photos-hb:dir(rtl) { padding: 0 4px 0 0; }       /* the window buttons touch the edge, as in Windows */
+button.fbtn.wbtn { min-width: 46px; min-height: 48px; padding: 0; margin: 0; border-radius: 0; border: none; transition: none; }
+button.fbtn.wbtn:hover { background-color: %(hover)s; }
+button.fbtn.wbtn:active { background-color: %(pressed)s; }
+button.fbtn.wbtn.close:hover { background-color: #c42b1c; }
+button.fbtn.wbtn.close:active { background-color: #b3271a; }
 headerbar.photos-hb .title, headerbar.photos-hb label { color: %(fg)s; font-size: 12px; }
 .photos-hb-title { font-size: 12px; }
 

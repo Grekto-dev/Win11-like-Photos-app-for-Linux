@@ -312,5 +312,8 @@
  "Straight line with arrows at both ends": "Ligne droite avec des flèches aux deux extrémités",
  "Freehand line": "Ligne à main levée",
  "To draw a straight line quickly, hold Shift while you click and drag with the left mouse button.": "Pour tracer rapidement une ligne droite, maintenez la touche Maj enfoncée tout en cliquant et en faisant glisser avec le bouton gauche de la souris.",
- "Remove markup": "Supprimer l’annotation"
+ "Remove markup": "Supprimer l’annotation",
+ "Minimize": "Réduire",
+ "Maximize": "Agrandir",
+ "Restore": "Restaurer"
 }

@@ -312,5 +312,8 @@
  "Straight line with arrows at both ends": "两端带箭头的直线",
  "Freehand line": "手绘线条",
  "To draw a straight line quickly, hold Shift while you click and drag with the left mouse button.": "若要快速绘制直线，请在按住鼠标左键单击并拖动的同时按住 Shift 键。",
- "Remove markup": "删除标记"
+ "Remove markup": "删除标记",
+ "Minimize": "最小化",
+ "Maximize": "最大化",
+ "Restore": "还原"
 }

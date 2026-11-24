@@ -10,6 +10,8 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
 from gi.repository import Gdk, GLib, Gtk  # noqa: E402
 
+import cairo  # noqa: E402
+
 from . import icons
 from .i18n import _, ngettext  # noqa: F401
 
@@ -361,6 +363,98 @@ def toast(overlay, text, ms=2600):
         Anim(box, 200, lambda t: box.set_opacity(1 - t), done=fin)
         return False
     GLib.timeout_add(ms, hide)
+
+
+# ───────────────────────── Window buttons ─────────────────────────
+
+class WindowButtons(Gtk.Box):
+    """Minimize / maximize (restore) / close, drawn by the app in the Windows 11 style.
+
+    The stock GTK title buttons are drawn by the desktop's GTK and icon themes, and some themes hide them (a Windows 11
+    theme turns their image off and paints the glyphs as a background image), which left the window without any visible
+    button. These never depend on the theme: the glyphs are drawn here with the app palette."""
+
+    SIZE = (46, 48)
+
+    def __init__(self, window):
+        super().__init__(spacing=0)
+        self.win = window
+        self.maximized = window.is_maximized()
+        self.actions = None                      # tests replace the window calls
+        self.buttons = {}
+        for name in ("minimize", "maximize", "close"):
+            b = Gtk.Button()
+            b.set_can_focus(False)
+            ctx = b.get_style_context()
+            for c in ("fbtn", "wbtn", name):
+                ctx.add_class(c)
+            area = Gtk.DrawingArea()
+            area.set_size_request(*self.SIZE)
+            area.connect("draw", self._draw, name, b)
+            b.add(area)
+            b.connect("clicked", lambda _b, n=name: self._click(n))
+            b.connect("state-flags-changed", lambda _b, _f, a=area: a.queue_draw())
+            self.pack_start(b, False, False, 0)
+            self.buttons[name] = b
+        window.connect("window-state-event", self._on_state)
+        self.refresh()
+
+    def _click(self, name):
+        if name == "maximize":
+            name = "unmaximize" if self.maximized else "maximize"
+        elif name == "minimize":
+            name = "iconify"
+        if self.actions:
+            self.actions[name]()
+        else:
+            getattr(self.win, name)()
+
+    def _on_state(self, _w, ev):
+        if ev.changed_mask & Gdk.WindowState.MAXIMIZED:
+            self.maximized = bool(ev.new_window_state & Gdk.WindowState.MAXIMIZED)
+            self.refresh()
+        return False
+
+    def refresh(self):
+        self.buttons["minimize"].set_tooltip_text(_("Minimize"))
+        self.buttons["maximize"].set_tooltip_text(_("Restore") if self.maximized else _("Maximize"))
+        self.buttons["close"].set_tooltip_text(_("Close"))
+        for b in self.buttons.values():
+            b.get_child().queue_draw()
+
+    def _draw(self, area, cr, name, button):
+        from . import theme
+        W, H = area.get_allocated_width(), area.get_allocated_height()
+        flags = button.get_state_flags()
+        if name == "close" and flags & (Gtk.StateFlags.PRELIGHT | Gtk.StateFlags.ACTIVE):
+            cr.set_source_rgb(1, 1, 1)
+        else:
+            theme.set_source(cr, "muted" if flags & Gtk.StateFlags.BACKDROP else "fg")
+        cr.set_line_width(1)
+        cr.set_line_cap(cairo.LINE_CAP_BUTT)
+        cx, cy = round(W / 2) + 0.5, round(H / 2) + 0.5       # half pixel: one-pixel lines stay sharp
+        if name == "minimize":
+            cr.move_to(cx - 5, cy)
+            cr.line_to(cx + 5, cy)
+        elif name == "maximize" and not self.maximized:
+            rounded_rect(cr, cx - 5, cy - 5, 10, 10, 1.5)
+        elif name == "maximize":
+            rounded_rect(cr, cx - 5, cy - 3, 8, 8, 1.5)                    # front square
+            cr.move_to(cx - 2, cy - 3)                                      # back square: only its visible L
+            cr.line_to(cx - 2, cy - 5.5)
+            cr.arc(cx - 0.5, cy - 4, 1.5, math.pi, 1.5 * math.pi)
+            cr.line_to(cx + 3.5, cy - 5.5)
+            cr.arc(cx + 3.5, cy - 4, 1.5, 1.5 * math.pi, 2 * math.pi)
+            cr.line_to(cx + 5, cy + 2)
+            cr.arc(cx + 3.5, cy + 2, 1.5, 0, 0.5 * math.pi)
+            cr.line_to(cx + 3, cy + 3.5)
+        else:
+            cr.move_to(cx - 5, cy - 5)
+            cr.line_to(cx + 5, cy + 5)
+            cr.move_to(cx + 5, cy - 5)
+            cr.line_to(cx - 5, cy + 5)
+        cr.stroke()
+        return False
 
 
 # ───────────────────────── Utilidades ─────────────────────────

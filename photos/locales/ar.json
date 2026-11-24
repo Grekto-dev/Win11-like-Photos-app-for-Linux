@@ -312,5 +312,8 @@
  "Straight line with arrows at both ends": "خط مستقيم بسهمين في الطرفين",
  "Freehand line": "خط يدوي",
  "To draw a straight line quickly, hold Shift while you click and drag with the left mouse button.": "لرسم خط مستقيم بسرعة، اضغط مع الاستمرار على مفتاح Shift أثناء النقر والسحب بزر الماوس الأيسر.",
- "Remove markup": "إزالة العلامة"
+ "Remove markup": "إزالة العلامة",
+ "Minimize": "تصغير",
+ "Maximize": "تكبير",
+ "Restore": "استعادة"
 }

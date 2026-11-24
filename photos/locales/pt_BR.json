@@ -312,5 +312,8 @@
  "Straight line with arrows at both ends": "Linha reta com setas nas duas pontas",
  "Freehand line": "Linha à mão livre",
  "To draw a straight line quickly, hold Shift while you click and drag with the left mouse button.": "Para desenhar uma linha reta rapidamente, mantenha a tecla Shift pressionada enquanto clica e arrasta com o botão esquerdo do mouse.",
- "Remove markup": "Remover marcação"
+ "Remove markup": "Remover marcação",
+ "Minimize": "Minimizar",
+ "Maximize": "Maximizar",
+ "Restore": "Restaurar"
 }

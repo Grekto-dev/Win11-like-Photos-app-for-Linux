@@ -41,6 +41,7 @@ jobs:
           xvfb-run -a python3 tests/test_viewer_siblings.py
           xvfb-run -a python3 tests/test_viewer_order.py
           xvfb-run -a python3 tests/test_markup.py
+          xvfb-run -a python3 tests/test_window_buttons.py
 
       - name: Validate the desktop entry
         run: desktop-file-validate data/dev.grekto.Photos.desktop

@@ -120,6 +120,7 @@ python3 tests/test_slow_storage.py     # metadata cache, parallel scan, no UI-th
 python3 tests/test_viewer_siblings.py  # instant open + background folder listing (needs a display)
 python3 tests/test_viewer_order.py     # natural name order, browsing order setting (needs a display)
 python3 tests/test_markup.py           # markup tools: widths, colours, arrows, flyout (needs a display)
+python3 tests/test_window_buttons.py  # minimize/maximize/close buttons survive hostile desktop themes (needs a display)
 scripts/build-deb.sh            # builds dist/photos_<version>_all.deb
 ```
 

@@ -27,6 +27,13 @@ icons, fonts or other assets were copied; everything in this repository is origi
   folder location.
 - Filmstrip (F): thumbnails ≈ 48 px under the canvas, selected one outlined.
 
+### Window buttons
+Minimize / maximize (restore) / close are drawn by the app (`ui.WindowButtons`), 46 x 48 px, Windows 11 glyphs (10 px, 1 px lines;
+two squares when maximized), grey hover, red `#c42b1c` with a white glyph for close. The stock GTK title buttons are not used: a
+desktop GTK theme may hide them (a Windows 11 theme sets their image to `opacity: 0` and paints the glyphs as a background image),
+and the icon theme may not match. Buttons touch the window edge (header padding is 0 on that side); in right-to-left languages
+they move to the left with close at the edge.
+
 ## Gallery
 - Left navigation (320 px, collapsible, draggable): Gallery, Favorites, This computer tree.
 - Header: title + count, then Select, Slideshow, Sort, Filter, Layout types/sizes, More.
